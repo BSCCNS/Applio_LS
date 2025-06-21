@@ -1,6 +1,5 @@
 import os
 import sys
-import soxr
 import time
 import torch
 import librosa
@@ -47,7 +46,7 @@ class VoiceConverter:
         """
         Initializes the VoiceConverter with default configuration, and sets up models and parameters.
         """
-        self.config = Config()  # Load configuration
+        self.config = Config()  # Load RVC configuration
         self.hubert_model = (
             None  # Initialize the Hubert model (for embedding extraction)
         )
@@ -70,6 +69,14 @@ class VoiceConverter:
             embedder_model_custom (str): Path to the custom HuBERT model.
         """
         self.hubert_model = load_embedding(embedder_model, embedder_model_custom)
+        # self.hubert_model.to(self.config.device)
+        # self.hubert_model = (
+        #     self.hubert_model.half()
+        #     if self.config.is_half
+        #     else self.hubert_model.float()
+        # )
+        # self.hubert_model.eval()
+        #self.hubert_model = load_embedding(embedder_model, embedder_model_custom)
         self.hubert_model = self.hubert_model.to(self.config.device).float()
         self.hubert_model.eval()
 
@@ -104,7 +111,7 @@ class VoiceConverter:
         """
         try:
             if output_format != "WAV":
-                print(f"Saving audio as {output_format}...")
+                print(f"Converting audio to {output_format} format...")
                 audio, sample_rate = librosa.load(input_path, sr=None)
                 common_sample_rates = [
                     8000,
@@ -119,7 +126,7 @@ class VoiceConverter:
                 ]
                 target_sr = min(common_sample_rates, key=lambda x: abs(x - sample_rate))
                 audio = librosa.resample(
-                    audio, orig_sr=sample_rate, target_sr=target_sr, res_type="soxr_vhq"
+                    audio, orig_sr=sample_rate, target_sr=target_sr
                 )
                 sf.write(output_path, audio, target_sr, format=output_format.lower())
             return output_path
@@ -206,11 +213,13 @@ class VoiceConverter:
         split_audio: bool = False,
         f0_autotune: bool = False,
         f0_autotune_strength: float = 1,
+        filter_radius: int = 3,
         embedder_model: str = "contentvec",
         embedder_model_custom: str = None,
         clean_audio: bool = False,
         clean_strength: float = 0.5,
         export_format: str = "WAV",
+        upscale_audio: bool = False,
         post_process: bool = False,
         resample_sr: int = 0,
         sid: int = 0,
@@ -221,6 +230,7 @@ class VoiceConverter:
 
         Args:
             pitch (int): Key for F0 up-sampling.
+            filter_radius (int): Radius for filtering.
             index_rate (float): Rate for index matching.
             volume_envelope (int): RMS mix rate.
             protect (float): Protection rate for certain audio segments.
@@ -235,6 +245,7 @@ class VoiceConverter:
             clean_audio (bool): Whether to clean the audio.
             clean_strength (float): Strength of the audio cleaning.
             export_format (str): Format for exporting the audio.
+            upscale_audio (bool): Whether to upscale the audio.
             f0_file (str): Path to the F0 file.
             embedder_model (str): Path to the embedder model.
             embedder_model_custom (str): Path to the custom embedder model.
@@ -242,16 +253,15 @@ class VoiceConverter:
             sid (int, optional): Speaker ID. Default is 0.
             **kwargs: Additional keyword arguments.
         """
-        if not model_path:
-            print("No model path provided. Aborting conversion.")
-            return
-
         self.get_vc(model_path, sid)
-
         try:
             start_time = time.time()
             print(f"Converting audio '{audio_input_path}'...")
 
+            if upscale_audio == True:
+                from audio_upscaler import upscale
+
+                upscale(audio_input_path, audio_input_path)
             audio = load_audio_infer(
                 audio_input_path,
                 16000,
@@ -284,7 +294,7 @@ class VoiceConverter:
             else:
                 chunks = []
                 chunks.append(audio)
-
+            basefilename = os.path.basename(audio_input_path)[:-4]
             converted_chunks = []
             for c in chunks:
                 audio_opt = self.vc.pipeline(
@@ -297,6 +307,7 @@ class VoiceConverter:
                     file_index=file_index,
                     index_rate=index_rate,
                     pitch_guidance=self.use_f0,
+                    filter_radius=filter_radius,
                     volume_envelope=volume_envelope,
                     version=self.version,
                     protect=protect,
@@ -304,15 +315,14 @@ class VoiceConverter:
                     f0_autotune=f0_autotune,
                     f0_autotune_strength=f0_autotune_strength,
                     f0_file=f0_file,
+                    basefilename=basefilename,
                 )
                 converted_chunks.append(audio_opt)
                 if split_audio:
                     print(f"Converted audio chunk {len(converted_chunks)}")
 
             if split_audio:
-                audio_opt = merge_audio(
-                    chunks, converted_chunks, intervals, 16000, self.tgt_sr
-                )
+                audio_opt = merge_audio(converted_chunks, intervals, 16000, self.tgt_sr)
             else:
                 audio_opt = converted_chunks[0]
 
@@ -373,7 +383,7 @@ class VoiceConverter:
             audio_files = [
                 f
                 for f in os.listdir(audio_input_paths)
-                if f.lower().endswith(
+                if f.endswith(
                     (
                         "wav",
                         "mp3",
@@ -455,7 +465,7 @@ class VoiceConverter:
             weight_root (str): Path to the model weights.
         """
         self.cpt = (
-            torch.load(weight_root, map_location="cpu", weights_only=True)
+            torch.load(weight_root, map_location="cpu")
             if os.path.isfile(weight_root)
             else None
         )
@@ -471,13 +481,21 @@ class VoiceConverter:
 
             self.version = self.cpt.get("version", "v1")
             self.text_enc_hidden_dim = 768 if self.version == "v2" else 256
+            # extra TA-changes
             self.vocoder = self.cpt.get("vocoder", "HiFi-GAN")
             self.net_g = Synthesizer(
                 *self.cpt["config"],
                 use_f0=self.use_f0,
                 text_enc_hidden_dim=self.text_enc_hidden_dim,
+                #is_half=self.config.is_half,
                 vocoder=self.vocoder,
             )
+            # del self.net_g.enc_q
+            # self.net_g.load_state_dict(self.cpt["weight"], strict=False)
+            # self.net_g.eval().to(self.config.device)
+            # self.net_g = (
+            #     self.net_g.half() if self.config.is_half else self.net_g.float()
+            # )
             del self.net_g.enc_q
             self.net_g.load_state_dict(self.cpt["weight"], strict=False)
             self.net_g = self.net_g.to(self.config.device).float()
