@@ -466,6 +466,22 @@ class Pipeline:
         
             feats = model(feats)["last_hidden_state"]
             feats_pretodo = feats.clone()
+
+            ### SAVE EMBEDDINGS 
+            #    
+            pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_hack/assets/features"
+
+            #####
+            print("Feats del modelo again:",feats_pretodo.shape)
+            fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
+            exportable = pd.DataFrame(feats_pretodo[0].cpu())
+            p_len = min(audio0.shape[0] // self.window, feats_pretodo.shape[1])
+            exportable['pitch']=pitchf[0, :p_len].cpu()
+            #exportable['rms']=librosa.feature.rms(audio0,hop_length=160)[0, :p_len]
+            #spectrum = pd.DataFrame(librosa.feature.mfcc(audio0,hop_length=160)[:, :p_len]).T
+            #spectrum.columns = ["mfcc"+str(i) for i in range(spectrum.shape[1])]
+            #exportable = pd.concat([exportable, spectrum], axis=1)
+            exportable.to_csv(fname)
             
             # print("Feats del modelo:",feats_pretodo.shape)
             # print("Tamano audio:",audio0.shape)
@@ -512,22 +528,6 @@ class Pipeline:
                 pitch, pitchf = None, None
             p_len = torch.tensor([p_len], device=self.device).long()
             infer_temp = net_g.infer(feats, p_len, pitch, pitchf, sid)
-
-            ### SAVE EMBEDDINGS 
-            #    
-            pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_hack/assets/features"
-
-            #####
-            print("Feats del modelo again:",feats_pretodo.shape)
-            fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
-            exportable = pd.DataFrame(feats_pretodo[0].cpu())
-            p_len = min(audio0.shape[0] // self.window, feats_pretodo.shape[1])
-            exportable['pitch']=pitchf[0, :p_len].cpu()
-            #exportable['rms']=librosa.feature.rms(audio0,hop_length=160)[0, :p_len]
-            #spectrum = pd.DataFrame(librosa.feature.mfcc(audio0,hop_length=160)[:, :p_len]).T
-            #spectrum.columns = ["mfcc"+str(i) for i in range(spectrum.shape[1])]
-            #exportable = pd.concat([exportable, spectrum], axis=1)
-            exportable.to_csv(fname)
 
             #for c in range(4):
             #    fname = unique_file(pathname+f"infer_{c}_{basefilename}", "csv")
@@ -604,15 +604,10 @@ class Pipeline:
             f0_autotune: Whether to apply autotune to the F0 contour.
             f0_file: Path to a file containing an F0 contour to use.
         """
-        if file_index != "" and os.path.exists(file_index) and index_rate > 0:
-            try:
-                index = faiss.read_index(file_index)
-                big_npy = index.reconstruct_n(0, index.ntotal)
-            except Exception as error:
-                print(f"An error occurred reading the FAISS index: {error}")
-                index = big_npy = None
-        else:
-            index = big_npy = None
+
+        #TA change
+        index = big_npy = None
+
         audio = signal.filtfilt(bh, ah, audio)
         audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
         opt_ts = []
@@ -635,6 +630,7 @@ class Pipeline:
         audio_pad = np.pad(audio, (self.t_pad, self.t_pad), mode="reflect")
         p_len = audio_pad.shape[0] // self.window
         inp_f0 = None
+        
         if hasattr(f0_file, "name"):
             try:
                 with open(f0_file.name, "r") as f:
@@ -646,6 +642,7 @@ class Pipeline:
             except Exception as error:
                 print(f"An error occurred reading the F0 file: {error}")
         sid = torch.tensor(sid, device=self.device).unsqueeze(0).long()
+        
         if pitch_guidance:
             pitch, pitchf = self.get_f0(
                 "input_audio_path",  # questionable purpose of making a key for an array
@@ -665,6 +662,7 @@ class Pipeline:
                 pitchf = pitchf.astype(np.float32)
             pitch = torch.tensor(pitch, device=self.device).unsqueeze(0).long()
             pitchf = torch.tensor(pitchf, device=self.device).unsqueeze(0).float()
+
         for t in opt_ts:
             t = t // self.window * self.window
             if pitch_guidance:
@@ -741,15 +739,7 @@ class Pipeline:
             audio_opt = AudioProcessor.change_rms(
                 audio, self.sample_rate, audio_opt, self.sample_rate, volume_envelope
             )
-        # if resample_sr >= self.sample_rate and tgt_sr != resample_sr:
-        #    audio_opt = librosa.resample(
-        #        audio_opt, orig_sr=tgt_sr, target_sr=resample_sr
-        #    )
-        # audio_max = np.abs(audio_opt).max() / 0.99
-        # max_int16 = 32768
-        # if audio_max > 1:
-        #    max_int16 /= audio_max
-        # audio_opt = (audio_opt * 32768).astype(np.int16)
+        
         audio_max = np.abs(audio_opt).max() / 0.99
         if audio_max > 1:
             audio_opt /= audio_max
