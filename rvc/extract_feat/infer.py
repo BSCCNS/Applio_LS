@@ -69,133 +69,8 @@ class VoiceConverter:
             embedder_model_custom (str): Path to the custom HuBERT model.
         """
         self.hubert_model = load_embedding(embedder_model, embedder_model_custom)
-        # self.hubert_model.to(self.config.device)
-        # self.hubert_model = (
-        #     self.hubert_model.half()
-        #     if self.config.is_half
-        #     else self.hubert_model.float()
-        # )
-        # self.hubert_model.eval()
-        #self.hubert_model = load_embedding(embedder_model, embedder_model_custom)
         self.hubert_model = self.hubert_model.to(self.config.device).float()
         self.hubert_model.eval()
-
-    @staticmethod
-    def remove_audio_noise(data, sr, reduction_strength=0.7):
-        """
-        Removes noise from an audio file using the NoiseReduce library.
-
-        Args:
-            data (numpy.ndarray): The audio data as a NumPy array.
-            sr (int): The sample rate of the audio data.
-            reduction_strength (float): Strength of the noise reduction. Default is 0.7.
-        """
-        try:
-            reduced_noise = nr.reduce_noise(
-                y=data, sr=sr, prop_decrease=reduction_strength
-            )
-            return reduced_noise
-        except Exception as error:
-            print(f"An error occurred removing audio noise: {error}")
-            return None
-
-    @staticmethod
-    def convert_audio_format(input_path, output_path, output_format):
-        """
-        Converts an audio file to a specified output format.
-
-        Args:
-            input_path (str): Path to the input audio file.
-            output_path (str): Path to the output audio file.
-            output_format (str): Desired audio format (e.g., "WAV", "MP3").
-        """
-        try:
-            if output_format != "WAV":
-                print(f"Converting audio to {output_format} format...")
-                audio, sample_rate = librosa.load(input_path, sr=None)
-                common_sample_rates = [
-                    8000,
-                    11025,
-                    12000,
-                    16000,
-                    22050,
-                    24000,
-                    32000,
-                    44100,
-                    48000,
-                ]
-                target_sr = min(common_sample_rates, key=lambda x: abs(x - sample_rate))
-                audio = librosa.resample(
-                    audio, orig_sr=sample_rate, target_sr=target_sr
-                )
-                sf.write(output_path, audio, target_sr, format=output_format.lower())
-            return output_path
-        except Exception as error:
-            print(f"An error occurred converting the audio format: {error}")
-
-    @staticmethod
-    def post_process_audio(
-        audio_input,
-        sample_rate,
-        **kwargs,
-    ):
-        board = Pedalboard()
-        if kwargs.get("reverb", False):
-            reverb = Reverb(
-                room_size=kwargs.get("reverb_room_size", 0.5),
-                damping=kwargs.get("reverb_damping", 0.5),
-                wet_level=kwargs.get("reverb_wet_level", 0.33),
-                dry_level=kwargs.get("reverb_dry_level", 0.4),
-                width=kwargs.get("reverb_width", 1.0),
-                freeze_mode=kwargs.get("reverb_freeze_mode", 0),
-            )
-            board.append(reverb)
-        if kwargs.get("pitch_shift", False):
-            pitch_shift = PitchShift(semitones=kwargs.get("pitch_shift_semitones", 0))
-            board.append(pitch_shift)
-        if kwargs.get("limiter", False):
-            limiter = Limiter(
-                threshold_db=kwargs.get("limiter_threshold", -6),
-                release_ms=kwargs.get("limiter_release", 0.05),
-            )
-            board.append(limiter)
-        if kwargs.get("gain", False):
-            gain = Gain(gain_db=kwargs.get("gain_db", 0))
-            board.append(gain)
-        if kwargs.get("distortion", False):
-            distortion = Distortion(drive_db=kwargs.get("distortion_gain", 25))
-            board.append(distortion)
-        if kwargs.get("chorus", False):
-            chorus = Chorus(
-                rate_hz=kwargs.get("chorus_rate", 1.0),
-                depth=kwargs.get("chorus_depth", 0.25),
-                centre_delay_ms=kwargs.get("chorus_delay", 7),
-                feedback=kwargs.get("chorus_feedback", 0.0),
-                mix=kwargs.get("chorus_mix", 0.5),
-            )
-            board.append(chorus)
-        if kwargs.get("bitcrush", False):
-            bitcrush = Bitcrush(bit_depth=kwargs.get("bitcrush_bit_depth", 8))
-            board.append(bitcrush)
-        if kwargs.get("clipping", False):
-            clipping = Clipping(threshold_db=kwargs.get("clipping_threshold", 0))
-            board.append(clipping)
-        if kwargs.get("compressor", False):
-            compressor = Compressor(
-                threshold_db=kwargs.get("compressor_threshold", 0),
-                ratio=kwargs.get("compressor_ratio", 1),
-                attack_ms=kwargs.get("compressor_attack", 1.0),
-                release_ms=kwargs.get("compressor_release", 100),
-            )
-            board.append(compressor)
-        if kwargs.get("delay", False):
-            delay = Delay(
-                delay_seconds=kwargs.get("delay_seconds", 0.5),
-                feedback=kwargs.get("delay_feedback", 0.0),
-                mix=kwargs.get("delay_mix", 0.5),
-            )
-            board.append(delay)
-        return board(audio_input, sample_rate)
 
     def convert_audio(
         self,
@@ -216,11 +91,6 @@ class VoiceConverter:
         filter_radius: int = 3,
         embedder_model: str = "contentvec",
         embedder_model_custom: str = None,
-        clean_audio: bool = False,
-        clean_strength: float = 0.5,
-        export_format: str = "WAV",
-        upscale_audio: bool = False,
-        post_process: bool = False,
         resample_sr: int = 0,
         sid: int = 0,
         **kwargs,
@@ -258,19 +128,11 @@ class VoiceConverter:
             start_time = time.time()
             print(f"Converting audio '{audio_input_path}'...")
 
-            if upscale_audio == True:
-                from audio_upscaler import upscale
-
-                upscale(audio_input_path, audio_input_path)
             audio = load_audio_infer(
                 audio_input_path,
                 16000,
                 **kwargs,
             )
-            audio_max = np.abs(audio).max() / 0.95
-
-            if audio_max > 1:
-                audio /= audio_max
 
             if not self.hubert_model or embedder_model != self.last_embedder_model:
                 self.load_hubert(embedder_model, embedder_model_custom)
@@ -325,28 +187,6 @@ class VoiceConverter:
                 audio_opt = merge_audio(converted_chunks, intervals, 16000, self.tgt_sr)
             else:
                 audio_opt = converted_chunks[0]
-
-            if clean_audio:
-                cleaned_audio = self.remove_audio_noise(
-                    audio_opt, self.tgt_sr, clean_strength
-                )
-                if cleaned_audio is not None:
-                    audio_opt = cleaned_audio
-
-            if post_process:
-                audio_opt = self.post_process_audio(
-                    audio_input=audio_opt,
-                    sample_rate=self.tgt_sr,
-                    **kwargs,
-                )
-
-            sf.write(audio_output_path, audio_opt, self.tgt_sr, format="WAV")
-            output_path_format = audio_output_path.replace(
-                ".wav", f".{export_format.lower()}"
-            )
-            audio_output_path = self.convert_audio_format(
-                audio_output_path, output_path_format, export_format
-            )
 
             elapsed_time = time.time() - start_time
             print(
