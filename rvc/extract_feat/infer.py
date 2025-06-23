@@ -150,47 +150,31 @@ class VoiceConverter:
             if self.tgt_sr != resample_sr >= 16000:
                 self.tgt_sr = resample_sr
 
-            if split_audio:
-                chunks, intervals = process_audio(audio, 16000)
-                print(f"Audio split into {len(chunks)} chunks for processing.")
-            else:
-                chunks = []
-                chunks.append(audio)
-
             print(f'---------- split_audio {split_audio}')
-            print(f'---------- number of chunks {len(chunks)}')
+            print(f'---------- audio {audio}')
 
             basefilename = os.path.basename(audio_input_path)[:-4]
-            converted_chunks = []
-            for c in chunks:
-                audio_opt = self.vc.pipeline(
-                    model=self.hubert_model,
-                    net_g=self.net_g,
-                    sid=sid,
-                    audio=c,
-                    pitch=pitch,
-                    f0_method=f0_method,
-                    file_index=file_index,
-                    index_rate=index_rate,
-                    pitch_guidance=self.use_f0,
-                    filter_radius=filter_radius,
-                    volume_envelope=volume_envelope,
-                    version=self.version,
-                    protect=protect,
-                    hop_length=hop_length,
-                    f0_autotune=f0_autotune,
-                    f0_autotune_strength=f0_autotune_strength,
-                    f0_file=f0_file,
-                    basefilename=basefilename,
-                )
-                converted_chunks.append(audio_opt)
-                if split_audio:
-                    print(f"Converted audio chunk {len(converted_chunks)}")
 
-            if split_audio:
-                audio_opt = merge_audio(converted_chunks, intervals, 16000, self.tgt_sr)
-            else:
-                audio_opt = converted_chunks[0]
+            audio_opt = self.vc.pipeline(
+                model=self.hubert_model,
+                net_g=self.net_g,
+                sid=sid,
+                audio=audio,
+                pitch=pitch,
+                f0_method=f0_method,
+                file_index=file_index,
+                index_rate=index_rate,
+                pitch_guidance=self.use_f0,
+                filter_radius=filter_radius,
+                volume_envelope=volume_envelope,
+                version=self.version,
+                protect=protect,
+                hop_length=hop_length,
+                f0_autotune=f0_autotune,
+                f0_autotune_strength=f0_autotune_strength,
+                f0_file=f0_file,
+                basefilename=basefilename
+            )
 
             elapsed_time = time.time() - start_time
             print(

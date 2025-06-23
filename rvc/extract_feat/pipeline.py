@@ -103,7 +103,7 @@ class Pipeline:
             
             pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
-            print("Feats del modelo again:",feats.shape)
+            print("Feats contentvec:",feats.shape)
             fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
             exportable = pd.DataFrame(feats[0].cpu())
             exportable.to_csv(fname)
