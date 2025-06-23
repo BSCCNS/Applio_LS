@@ -476,7 +476,7 @@ class Pipeline:
             fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
             exportable = pd.DataFrame(feats_pretodo[0].cpu())
             p_len = min(audio0.shape[0] // self.window, feats_pretodo.shape[1])
-            exportable['pitch']=pitchf[0, :p_len].cpu()
+            #exportable['pitch']=pitchf[0, :p_len].cpu()
             #exportable['rms']=librosa.feature.rms(audio0,hop_length=160)[0, :p_len]
             #spectrum = pd.DataFrame(librosa.feature.mfcc(audio0,hop_length=160)[:, :p_len]).T
             #spectrum.columns = ["mfcc"+str(i) for i in range(spectrum.shape[1])]
@@ -490,60 +490,56 @@ class Pipeline:
             #import soundfile as sf
             #sf.write(f'{pathname}/test_wav.wav', audio0, 16000, 'PCM_24')
 
-            feats = (
-                model.final_proj(feats[0]).unsqueeze(0) if version == "v1" else feats
-            )
+            # feats = (
+            #     model.final_proj(feats[0]).unsqueeze(0) if version == "v1" else feats
+            # )
             
 
-            # make a copy for pitch guidance and protection
-            feats0 = feats.clone() if pitch_guidance else None
-            if (
-                index
-            ):  # set by parent function, only true if index is available, loaded, and index rate > 0
-                feats = self._retrieve_speaker_embeddings(
-                    feats, index, big_npy, index_rate
-                )
-            # feature upsampling
-            feats = F.interpolate(feats.permute(0, 2, 1), scale_factor=2).permute(
-                0, 2, 1
-            )
-            # adjust the length if the audio is short
-            p_len = min(audio0.shape[0] // self.window, feats.shape[1])
-            #import pdb; pdb.set_trace()
-            if pitch_guidance:
-                feats0 = F.interpolate(feats0.permute(0, 2, 1), scale_factor=2).permute(
-                    0, 2, 1
-                )
-                pitch, pitchf = pitch[:, :p_len], pitchf[:, :p_len]
-                # Pitch protection blending
-                if protect < 0.5:
-                    pitchff = pitchf.clone()
-                    pitchff[pitchf > 0] = 1
-                    pitchff[pitchf < 1] = protect
-                    feats = feats * pitchff.unsqueeze(-1) + feats0 * (
-                        1 - pitchff.unsqueeze(-1)
-                    )
-                    feats = feats.to(feats0.dtype)
-            else:
-                pitch, pitchf = None, None
-            p_len = torch.tensor([p_len], device=self.device).long()
-            infer_temp = net_g.infer(feats, p_len, pitch, pitchf, sid)
+            # # make a copy for pitch guidance and protection
+            # feats0 = feats.clone() if pitch_guidance else None
+            # if (
+            #     index
+            # ):  # set by parent function, only true if index is available, loaded, and index rate > 0
+            #     feats = self._retrieve_speaker_embeddings(
+            #         feats, index, big_npy, index_rate
+            #     )
+            # # feature upsampling
+            # feats = F.interpolate(feats.permute(0, 2, 1), scale_factor=2).permute(
+            #     0, 2, 1
+            # )
+            # # adjust the length if the audio is short
+            # p_len = min(audio0.shape[0] // self.window, feats.shape[1])
+            # #import pdb; pdb.set_trace()
+            # if pitch_guidance:
+            #     feats0 = F.interpolate(feats0.permute(0, 2, 1), scale_factor=2).permute(
+            #         0, 2, 1
+            #     )
+            #     pitch, pitchf = pitch[:, :p_len], pitchf[:, :p_len]
+            #     # Pitch protection blending
+            #     if protect < 0.5:
+            #         pitchff = pitchf.clone()
+            #         pitchff[pitchf > 0] = 1
+            #         pitchff[pitchf < 1] = protect
+            #         feats = feats * pitchff.unsqueeze(-1) + feats0 * (
+            #             1 - pitchff.unsqueeze(-1)
+            #         )
+            #         feats = feats.to(feats0.dtype)
+            # else:
+            #     pitch, pitchf = None, None
+            # p_len = torch.tensor([p_len], device=self.device).long()
+            # infer_temp = net_g.infer(feats, p_len, pitch, pitchf, sid)
 
-            #for c in range(4):
-            #    fname = unique_file(pathname+f"infer_{c}_{basefilename}", "csv")
-            #    pd.DataFrame(infer_temp[2][c][0].cpu()).to_csv(fname)
-
-            audio1 = (
-                (infer_temp[0][0, 0])
-                .data.cpu()
-                .float()
-                .numpy()
-            )
-            # clean up
-            del feats, feats0, p_len, feats_pretodo
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        return audio1
+            # audio1 = (
+            #     (infer_temp[0][0, 0])
+            #     .data.cpu()
+            #     .float()
+            #     .numpy()
+            # )
+            # # clean up
+            # del feats, feats0, p_len, feats_pretodo
+            # if torch.cuda.is_available():
+            #     torch.cuda.empty_cache()
+        return [0.] #audio1
 
     def _retrieve_speaker_embeddings(self, feats, index, big_npy, index_rate):
         npy = feats[0].cpu().numpy()
@@ -608,6 +604,8 @@ class Pipeline:
         #TA change
         index = big_npy = None
 
+        print(f'Inside Pipeline pipeline : pitch_guidance {pitch_guidance}')
+
         audio = signal.filtfilt(bh, ah, audio)
         audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
         opt_ts = []
@@ -643,108 +641,108 @@ class Pipeline:
                 print(f"An error occurred reading the F0 file: {error}")
         sid = torch.tensor(sid, device=self.device).unsqueeze(0).long()
         
-        if pitch_guidance:
-            pitch, pitchf = self.get_f0(
-                "input_audio_path",  # questionable purpose of making a key for an array
-                audio_pad,
-                p_len,
-                pitch,
-                f0_method,
-                filter_radius,
-                hop_length,
-                f0_autotune,
-                f0_autotune_strength,
-                inp_f0,
-            )
-            pitch = pitch[:p_len]
-            pitchf = pitchf[:p_len]
-            if self.device == "mps":
-                pitchf = pitchf.astype(np.float32)
-            pitch = torch.tensor(pitch, device=self.device).unsqueeze(0).long()
-            pitchf = torch.tensor(pitchf, device=self.device).unsqueeze(0).float()
+        # if pitch_guidance:
+        #     pitch, pitchf = self.get_f0(
+        #         "input_audio_path",  # questionable purpose of making a key for an array
+        #         audio_pad,
+        #         p_len,
+        #         pitch,
+        #         f0_method,
+        #         filter_radius,
+        #         hop_length,
+        #         f0_autotune,
+        #         f0_autotune_strength,
+        #         inp_f0,
+        #     )
+        #     pitch = pitch[:p_len]
+        #     pitchf = pitchf[:p_len]
+        #     if self.device == "mps":
+        #         pitchf = pitchf.astype(np.float32)
+        #     pitch = torch.tensor(pitch, device=self.device).unsqueeze(0).long()
+        #     pitchf = torch.tensor(pitchf, device=self.device).unsqueeze(0).float()
 
         for t in opt_ts:
             t = t // self.window * self.window
-            if pitch_guidance:
-                audio_opt.append(
-                    self.voice_conversion(
-                        model,
-                        net_g,
-                        sid,
-                        audio_pad[s : t + self.t_pad2 + self.window],
-                        pitch[:, s // self.window : (t + self.t_pad2) // self.window],
-                        pitchf[:, s // self.window : (t + self.t_pad2) // self.window],
-                        index,
-                        big_npy,
-                        index_rate,
-                        version,
-                        protect,
-                        basefilename=basefilename
-                    )[self.t_pad_tgt : -self.t_pad_tgt]
-                )
-            else:
-                audio_opt.append(
-                    self.voice_conversion(
-                        model,
-                        net_g,
-                        sid,
-                        audio_pad[s : t + self.t_pad2 + self.window],
-                        None,
-                        None,
-                        index,
-                        big_npy,
-                        index_rate,
-                        version,
-                        protect,
-                        basefilename=basefilename
-                    )[self.t_pad_tgt : -self.t_pad_tgt]
-                )
+            # if pitch_guidance:
+            #     audio_opt.append(
+            #         self.voice_conversion(
+            #             model,
+            #             net_g,
+            #             sid,
+            #             audio_pad[s : t + self.t_pad2 + self.window],
+            #             pitch[:, s // self.window : (t + self.t_pad2) // self.window],
+            #             pitchf[:, s // self.window : (t + self.t_pad2) // self.window],
+            #             index,
+            #             big_npy,
+            #             index_rate,
+            #             version,
+            #             protect,
+            #             basefilename=basefilename
+            #         )[self.t_pad_tgt : -self.t_pad_tgt]
+            #     )
+            #else:
+            audio_opt.append(
+                self.voice_conversion(
+                    model,
+                    net_g,
+                    sid,
+                    audio_pad[s : t + self.t_pad2 + self.window],
+                    None,
+                    None,
+                    index,
+                    big_npy,
+                    index_rate,
+                    version,
+                    protect,
+                    basefilename=basefilename
+                )[self.t_pad_tgt : -self.t_pad_tgt]
+            )
             s = t
-        if pitch_guidance:
-            audio_opt.append(
-                self.voice_conversion(
-                    model,
-                    net_g,
-                    sid,
-                    audio_pad[t:],
-                    pitch[:, t // self.window :] if t is not None else pitch,
-                    pitchf[:, t // self.window :] if t is not None else pitchf,
-                    index,
-                    big_npy,
-                    index_rate,
-                    version,
-                    protect,
-                    basefilename=basefilename
-                )[self.t_pad_tgt : -self.t_pad_tgt]
-            )
-        else:
-            audio_opt.append(
-                self.voice_conversion(
-                    model,
-                    net_g,
-                    sid,
-                    audio_pad[t:],
-                    None,
-                    None,
-                    index,
-                    big_npy,
-                    index_rate,
-                    version,
-                    protect,
-                    basefilename=basefilename
-                )[self.t_pad_tgt : -self.t_pad_tgt]
-            )
+        # if pitch_guidance:
+        #     audio_opt.append(
+        #         self.voice_conversion(
+        #             model,
+        #             net_g,
+        #             sid,
+        #             audio_pad[t:],
+        #             pitch[:, t // self.window :] if t is not None else pitch,
+        #             pitchf[:, t // self.window :] if t is not None else pitchf,
+        #             index,
+        #             big_npy,
+        #             index_rate,
+        #             version,
+        #             protect,
+        #             basefilename=basefilename
+        #         )[self.t_pad_tgt : -self.t_pad_tgt]
+        #     )
+        # else:
+        audio_opt.append(
+            self.voice_conversion(
+                model,
+                net_g,
+                sid,
+                audio_pad[t:],
+                None,
+                None,
+                index,
+                big_npy,
+                index_rate,
+                version,
+                protect,
+                basefilename=basefilename
+            ) #[self.t_pad_tgt : -self.t_pad_tgt]
+        )
         audio_opt = np.concatenate(audio_opt)
         if volume_envelope != 1:
             audio_opt = AudioProcessor.change_rms(
                 audio, self.sample_rate, audio_opt, self.sample_rate, volume_envelope
             )
         
-        audio_max = np.abs(audio_opt).max() / 0.99
-        if audio_max > 1:
-            audio_opt /= audio_max
-        if pitch_guidance:
-            del pitch, pitchf
+        # audio_max = np.abs(audio_opt).max() / 0.99
+        # if audio_max > 1:
+        #     audio_opt /= audio_max
+        # if pitch_guidance:
+        #     del pitch, pitchf
         del sid
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

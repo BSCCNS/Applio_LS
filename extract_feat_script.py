@@ -151,7 +151,7 @@ def run_infer_script(
         "delay_mix": delay_mix,
         "sid": sid,
     }
-    infer_pipeline = VoiceConverter() #import_voice_converter()
+    infer_pipeline = VoiceConverter() 
     infer_pipeline.convert_audio(
         **kwargs,
     )
