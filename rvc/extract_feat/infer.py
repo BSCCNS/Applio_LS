@@ -156,6 +156,10 @@ class VoiceConverter:
             else:
                 chunks = []
                 chunks.append(audio)
+
+            print(f'---------- split_audio {split_audio}')
+            print(f'---------- number of chunks {len(chunks)}')
+
             basefilename = os.path.basename(audio_input_path)[:-4]
             converted_chunks = []
             for c in chunks:

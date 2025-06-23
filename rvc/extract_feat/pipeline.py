@@ -127,7 +127,8 @@ class Pipeline:
         f0_autotune,
         f0_autotune_strength,
         f0_file,
-        basefilename=""
+        basefilename="",
+        padding_pipeline = True
     ):
         """
         The main pipeline function for performing voice conversion.
@@ -155,37 +156,45 @@ class Pipeline:
         """
 
         audio = signal.filtfilt(bh, ah, audio)
-        audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
-        opt_ts = []
-        if audio_pad.shape[0] > self.t_max:
-            audio_sum = np.zeros_like(audio)
-            for i in range(self.window):
-                audio_sum += audio_pad[i : i - self.window]
-            for t in range(self.t_center, audio.shape[0], self.t_center):
-                opt_ts.append(
-                    t
-                    - self.t_query
-                    + np.where(
-                        np.abs(audio_sum[t - self.t_query : t + self.t_query])
-                        == np.abs(audio_sum[t - self.t_query : t + self.t_query]).min()
-                    )[0][0]
-                )
-        s = 0
-        t = None
-        audio_pad = np.pad(audio, (self.t_pad, self.t_pad), mode="reflect")
-        
-        for t in opt_ts:
-            t = t // self.window * self.window
+
+        if padding_pipeline:
+            audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
+            opt_ts = []
+            if audio_pad.shape[0] > self.t_max:
+                audio_sum = np.zeros_like(audio)
+                for i in range(self.window):
+                    audio_sum += audio_pad[i : i - self.window]
+                for t in range(self.t_center, audio.shape[0], self.t_center):
+                    opt_ts.append(
+                        t
+                        - self.t_query
+                        + np.where(
+                            np.abs(audio_sum[t - self.t_query : t + self.t_query])
+                            == np.abs(audio_sum[t - self.t_query : t + self.t_query]).min()
+                        )[0][0]
+                    )
+            s = 0
+            t = None
+            audio_pad = np.pad(audio, (self.t_pad, self.t_pad), mode="reflect")
+            
+            for t in opt_ts:
+                t = t // self.window * self.window
+                self.voice_conversion(
+                        model,
+                        audio_pad[s : t + self.t_pad2 + self.window],
+                        basefilename=basefilename)
+                s = t
             self.voice_conversion(
-                    model,
-                    audio_pad[s : t + self.t_pad2 + self.window],
-                    basefilename=basefilename)
-            s = t
-        self.voice_conversion(
-            model,
-            audio_pad[t:],
-            basefilename=basefilename) 
+                model,
+                audio_pad[t:],
+                basefilename=basefilename) 
+        else:
+            self.voice_conversion(
+                model,
+                audio,
+                basefilename=basefilename+"no_pad") 
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         return None
+
