@@ -1,22 +1,13 @@
 import os
-# import gc
-# import re
 import sys
 import torch
-#import torch.nn.functional as F
-# import torchcrepe
-# import faiss
-# import librosa
 import numpy as np
 from scipy import signal
-#from torch import Tensor
 import pandas as pd
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 
-# from rvc.lib.predictors.RMVPE import RMVPE0Predictor
-# from rvc.lib.predictors.FCPE import FCPEF0Predictor
 
 import logging
 
@@ -70,53 +61,59 @@ class Pipeline:
         self.time_step = self.window / self.sample_rate * 1000
         self.device = config.device
 
+    def pipeline(
+        self,
+        model,
+        audio,
+        basefilename="",
+        padding_for_features = True
+    ):
+
+        audio = signal.filtfilt(bh, ah, audio)
+
+        if padding_for_features:
+            df_feats = self.convert_with_padding(model, audio)
+        else:
+            df_feats = self.voice_conversion(model, audio)
+            
+        pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
+        fname = unique_file(f"{pathname}/feats_{basefilename}", "csv")
+
+        print("feats contentvec:",df_feats.shape)
+        df_feats.to_csv(fname)
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return None
+
     def voice_conversion(
         self,
         model,
-        audio0,
-        basefilename=""
+        audio,
+        #basefilename=""
     ):
-        """
-        Performs voice conversion on a given audio segment.
-        Args:
-            model: The feature extractor model.
-            audio0: The input audio segment.
-        """
         with torch.no_grad():
-            audio_torch = torch.from_numpy(audio0).float()
+            audio_torch = torch.from_numpy(audio.copy()).float()
             audio_torch = audio_torch.mean(-1) if audio_torch.dim() == 2 else audio_torch
             assert audio_torch.dim() == 1, audio_torch.dim()
             audio_torch = audio_torch.view(1, -1).to(self.device)
 
             # extract features
             feats = model(audio_torch)["last_hidden_state"]
-            
-            pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
+            #pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
-            print("Feats contentvec:",feats.shape)
-            fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
-            exportable = pd.DataFrame(feats[0].cpu())
-            exportable.to_csv(fname)
+            #print("Feats contentvec:",feats.shape)
+            #fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
+            df_feats = pd.DataFrame(feats[0].cpu())
+            #exportable.to_csv(fname)
+
+            return df_feats
             
-    def pipeline(
-        self,
-        model,
-        audio,
-        basefilename=""
+    def convert_with_padding(
+        self, 
+        model, 
+        audio
     ):
-        """
-        The main pipeline function for performing voice conversion.
-
-        Args:
-            model: The feature extractor model.
-            audio: The input audio signal.
-        """
-
-        audio = signal.filtfilt(bh, ah, audio)
-
-        print(f'----------- audio.shape {audio.shape}')
-        print(f'----------- self.t_max {self.t_max}')
-
         audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
         opt_ts = []
         if audio_pad.shape[0] > self.t_max:
@@ -135,20 +132,27 @@ class Pipeline:
         s = 0
         t = None
         audio_pad = np.pad(audio, (self.t_pad, self.t_pad), mode="reflect")
+        
+        df_feats_list = []
         for t in opt_ts:
             t = t // self.window * self.window
-            self.voice_conversion(
-                    model,
-                    audio_pad[s : t + self.t_pad2 + self.window],
-                    basefilename=basefilename)
+            df_feats = self.voice_conversion(
+                            model,
+                            audio_pad[s : t + self.t_pad2 + self.window])
+            
+            df_feats = df_feats[50:-50] #HARD CODED!!! adjust to padding length
+            print("Partial feats contentvec:",df_feats.shape)
+
+            df_feats_list.append(df_feats)
             s = t
-        self.voice_conversion(
-            model,
-            audio_pad[t:],
-            basefilename=basefilename) 
-       
+        df_feats = self.voice_conversion(
+                        model,
+                        audio_pad[t:])
+        df_feats = df_feats[50:-50] #HARD CODED!!! adjust to padding length 
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        return None
+        print("Partial feats contentvec:",df_feats.shape)
+        df_feats_list.append(df_feats)
 
+        df_feats_all = pd.concat(df_feats_list)
+        return df_feats_all
+        

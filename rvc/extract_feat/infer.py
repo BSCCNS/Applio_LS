@@ -150,15 +150,13 @@ class VoiceConverter:
             if self.tgt_sr != resample_sr >= 16000:
                 self.tgt_sr = resample_sr
 
-            print(f'---------- split_audio {split_audio}')
-            print(f'---------- audio {audio}')
-
             basefilename = os.path.basename(audio_input_path)[:-4]
 
             audio_opt = self.vc.pipeline(
                 model=self.hubert_model,
                 audio=audio,
-                basefilename=basefilename
+                basefilename=basefilename,
+                padding_for_features=True
             )
 
             elapsed_time = time.time() - start_time
