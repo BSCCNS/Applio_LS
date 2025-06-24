@@ -90,7 +90,6 @@ class Pipeline:
         self,
         model,
         audio,
-        #basefilename=""
     ):
         with torch.no_grad():
             audio_torch = torch.from_numpy(audio.copy()).float()
@@ -100,13 +99,7 @@ class Pipeline:
 
             # extract features
             feats = model(audio_torch)["last_hidden_state"]
-            #pathname = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
-
-            #print("Feats contentvec:",feats.shape)
-            #fname = unique_file(f"{pathname}/feats_pre_index_{basefilename}", "csv")
             df_feats = pd.DataFrame(feats[0].cpu())
-            #exportable.to_csv(fname)
-
             return df_feats
             
     def convert_with_padding(

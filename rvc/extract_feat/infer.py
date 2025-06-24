@@ -77,18 +77,6 @@ class VoiceConverter:
         audio_input_path: str,
         audio_output_path: str,
         model_path: str,
-        index_path: str,
-        pitch: int = 0,
-        f0_file: str = None,
-        f0_method: str = "rmvpe",
-        index_rate: float = 0.75,
-        volume_envelope: float = 1,
-        protect: float = 0.5,
-        hop_length: int = 128,
-        split_audio: bool = False,
-        f0_autotune: bool = False,
-        f0_autotune_strength: float = 1,
-        filter_radius: int = 3,
         embedder_model: str = "contentvec",
         embedder_model_custom: str = None,
         resample_sr: int = 0,
@@ -99,24 +87,9 @@ class VoiceConverter:
         Performs voice conversion on the input audio.
 
         Args:
-            pitch (int): Key for F0 up-sampling.
-            filter_radius (int): Radius for filtering.
-            index_rate (float): Rate for index matching.
-            volume_envelope (int): RMS mix rate.
-            protect (float): Protection rate for certain audio segments.
-            hop_length (int): Hop length for audio processing.
-            f0_method (str): Method for F0 extraction.
             audio_input_path (str): Path to the input audio file.
             audio_output_path (str): Path to the output audio file.
             model_path (str): Path to the voice conversion model.
-            index_path (str): Path to the index file.
-            split_audio (bool): Whether to split the audio for processing.
-            f0_autotune (bool): Whether to use F0 autotune.
-            clean_audio (bool): Whether to clean the audio.
-            clean_strength (float): Strength of the audio cleaning.
-            export_format (str): Format for exporting the audio.
-            upscale_audio (bool): Whether to upscale the audio.
-            f0_file (str): Path to the F0 file.
             embedder_model (str): Path to the embedder model.
             embedder_model_custom (str): Path to the custom embedder model.
             resample_sr (int, optional): Resample sampling rate. Default is 0.
@@ -138,15 +111,6 @@ class VoiceConverter:
                 self.load_hubert(embedder_model, embedder_model_custom)
                 self.last_embedder_model = embedder_model
 
-            file_index = (
-                index_path.strip()
-                .strip('"')
-                .strip("\n")
-                .strip('"')
-                .strip()
-                .replace("trained", "added")
-            )
-
             if self.tgt_sr != resample_sr >= 16000:
                 self.tgt_sr = resample_sr
 
@@ -166,72 +130,6 @@ class VoiceConverter:
         except Exception as error:
             print(f"An error occurred during audio conversion: {error}")
             print(traceback.format_exc())
-
-    def convert_audio_batch(
-        self,
-        audio_input_paths: str,
-        audio_output_path: str,
-        **kwargs,
-    ):
-        """
-        Performs voice conversion on a batch of input audio files.
-
-        Args:
-            audio_input_paths (str): List of paths to the input audio files.
-            audio_output_path (str): Path to the output audio file.
-            resample_sr (int, optional): Resample sampling rate. Default is 0.
-            sid (int, optional): Speaker ID. Default is 0.
-            **kwargs: Additional keyword arguments.
-        """
-        pid = os.getpid()
-        try:
-            with open(
-                os.path.join(now_dir, "assets", "infer_pid.txt"), "w"
-            ) as pid_file:
-                pid_file.write(str(pid))
-            start_time = time.time()
-            print(f"Converting audio batch '{audio_input_paths}'...")
-            audio_files = [
-                f
-                for f in os.listdir(audio_input_paths)
-                if f.endswith(
-                    (
-                        "wav",
-                        "mp3",
-                        "flac",
-                        "ogg",
-                        "opus",
-                        "m4a",
-                        "mp4",
-                        "aac",
-                        "alac",
-                        "wma",
-                        "aiff",
-                        "webm",
-                        "ac3",
-                    )
-                )
-            ]
-            print(f"Detected {len(audio_files)} audio files for inference.")
-            for a in audio_files:
-                new_input = os.path.join(audio_input_paths, a)
-                new_output = os.path.splitext(a)[0] + "_output.wav"
-                new_output = os.path.join(audio_output_path, new_output)
-                if os.path.exists(new_output):
-                    continue
-                self.convert_audio(
-                    audio_input_path=new_input,
-                    audio_output_path=new_output,
-                    **kwargs,
-                )
-            print(f"Conversion completed at '{audio_input_paths}'.")
-            elapsed_time = time.time() - start_time
-            print(f"Batch conversion completed in {elapsed_time:.2f} seconds.")
-        except Exception as error:
-            print(f"An error occurred during audio batch conversion: {error}")
-            print(traceback.format_exc())
-        finally:
-            os.remove(os.path.join(now_dir, "assets", "infer_pid.txt"))
 
     def get_vc(self, weight_root, sid):
         """
