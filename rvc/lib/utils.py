@@ -136,5 +136,7 @@ def load_embedding(embedder_model, custom_embedder=None):
             print(f"Downloading {url} to {model_path}...")
             wget.download(url, out=json_file)
 
+    print(f'model_path {model_path}')
+
     models = HubertModelWithFinalProj.from_pretrained(model_path)
     return models

@@ -3,7 +3,8 @@ import numpy as np
 
 from rvc.extract_feat.infer import VoiceConverter
 
-input_path = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/ES_milagro.wav'
+#input_path = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/ES_milagro.wav'
+input_path = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/tomas_vowels_1.wav'
 output_path = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/tomas_vowels_1_output.wav'
 
 params = {
@@ -11,7 +12,6 @@ params = {
 'output_path': output_path,
 'pth_path': 'logs/maria-20/maria-20.pth', 
 'embedder_model': 'contentvec', 
-'embedder_model_custom': None, 
 'sid': 0}
 
 print(params)
@@ -21,7 +21,6 @@ def run_infer_script(
     output_path = str,
     pth_path = str,
     embedder_model = str,
-    embedder_model_custom: str = None,
     sid: int = 0,
 ):
     kwargs = {
@@ -29,7 +28,6 @@ def run_infer_script(
         "audio_output_path": output_path,
         "model_path": pth_path,
         "embedder_model": embedder_model,
-        "embedder_model_custom": embedder_model_custom,
         "sid": sid,
     }
     infer_pipeline = VoiceConverter() 

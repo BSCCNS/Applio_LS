@@ -7,20 +7,10 @@ import logging
 import traceback
 import numpy as np
 import soundfile as sf
-import noisereduce as nr
-from pedalboard import (
-    Pedalboard,
-    Chorus,
-    Distortion,
-    Reverb,
-    PitchShift,
-    Limiter,
-    Gain,
-    Bitcrush,
-    Clipping,
-    Compressor,
-    Delay,
-)
+
+from transformers import HubertModel
+from torch import nn
+
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -31,11 +21,12 @@ from rvc.lib.tools.split_audio import process_audio, merge_audio
 from rvc.lib.algorithm.synthesizers import Synthesizer
 from rvc.configs.config import Config
 
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("faiss").setLevel(logging.WARNING)
-logging.getLogger("faiss.loader").setLevel(logging.WARNING)
+EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
 
+class HubertModelWithFinalProj(HubertModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.final_proj = nn.Linear(config.hidden_size, config.classifier_proj_size)
 
 class VoiceConverter:
     """
@@ -60,7 +51,7 @@ class VoiceConverter:
         self.use_f0 = None  # Whether the model uses F0
         self.loaded_model = None
 
-    def load_hubert(self, embedder_model: str, embedder_model_custom: str = None):
+    def load_hubert(self, embedder_model: str):
         """
         Loads the HuBERT model for speaker embedding extraction.
 
@@ -68,7 +59,8 @@ class VoiceConverter:
             embedder_model (str): Path to the pre-trained HuBERT model.
             embedder_model_custom (str): Path to the custom HuBERT model.
         """
-        self.hubert_model = load_embedding(embedder_model, embedder_model_custom)
+        emb_path = f'{EMBEDDERS_PATH}/{embedder_model}'
+        self.hubert_model = HubertModelWithFinalProj.from_pretrained(emb_path)
         self.hubert_model = self.hubert_model.to(self.config.device).float()
         self.hubert_model.eval()
 
@@ -78,7 +70,6 @@ class VoiceConverter:
         audio_output_path: str,
         model_path: str,
         embedder_model: str = "contentvec",
-        embedder_model_custom: str = None,
         resample_sr: int = 0,
         sid: int = 0,
         **kwargs,
@@ -107,9 +98,7 @@ class VoiceConverter:
                 **kwargs,
             )
 
-            if not self.hubert_model or embedder_model != self.last_embedder_model:
-                self.load_hubert(embedder_model, embedder_model_custom)
-                self.last_embedder_model = embedder_model
+            self.load_hubert(embedder_model)
 
             if self.tgt_sr != resample_sr >= 16000:
                 self.tgt_sr = resample_sr
