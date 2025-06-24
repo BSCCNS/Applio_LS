@@ -157,22 +157,7 @@ class VoiceConverter:
 
             audio_opt = self.vc.pipeline(
                 model=self.hubert_model,
-                net_g=self.net_g,
-                sid=sid,
                 audio=audio,
-                pitch=pitch,
-                f0_method=f0_method,
-                file_index=file_index,
-                index_rate=index_rate,
-                pitch_guidance=self.use_f0,
-                filter_radius=filter_radius,
-                volume_envelope=volume_envelope,
-                version=self.version,
-                protect=protect,
-                hop_length=hop_length,
-                f0_autotune=f0_autotune,
-                f0_autotune_strength=f0_autotune_strength,
-                f0_file=f0_file,
                 basefilename=basefilename
             )
 
