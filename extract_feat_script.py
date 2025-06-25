@@ -10,25 +10,20 @@ output_path = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/
 params = {
 'input_path': input_path, 
 'output_path': output_path,
-'pth_path': 'logs/maria-20/maria-20.pth', 
-'embedder_model': 'contentvec', 
-'sid': 0}
+'embedder_model': 'contentvec'
+}
 
 print(params)
 
 def run_infer_script(
     input_path = str,
     output_path = str,
-    pth_path = str,
-    embedder_model = str,
-    sid: int = 0,
+    embedder_model = str
 ):
     kwargs = {
         "audio_input_path": input_path,
         "audio_output_path": output_path,
-        "model_path": pth_path,
         "embedder_model": embedder_model,
-        "sid": sid,
     }
     infer_pipeline = VoiceConverter() 
     infer_pipeline.convert_audio(

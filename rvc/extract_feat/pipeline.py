@@ -91,6 +91,7 @@ class Pipeline:
         model,
         audio,
     ):
+        
         with torch.no_grad():
             audio_torch = torch.from_numpy(audio.copy()).float()
             audio_torch = audio_torch.mean(-1) if audio_torch.dim() == 2 else audio_torch
