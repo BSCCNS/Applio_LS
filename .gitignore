@@ -18,6 +18,7 @@
 assets/audios
 assets/datasets
 assets/features
+assets/umap
 logs
 rvc/models
 env
