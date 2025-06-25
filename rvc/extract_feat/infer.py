@@ -33,26 +33,31 @@ from rvc.lib.algorithm.synthesizers import Synthesizer
 from rvc.configs.config import Config
 
 EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
-FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
-
-class HubertModelWithFinalProj(HubertModel):
-    def __init__(self, config):
-        super().__init__(config)
-        self.final_proj = nn.Linear(config.hidden_size, config.classifier_proj_size)
+#FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
 class VoiceConverter:
     """
     A class for performing voice conversion using the Retrieval-Based Voice Conversion (RVC) method.
     """
 
-    def __init__(self):
+    def __init__(self, 
+        embedder_model: str = "contentvec",
+        use_window: bool = False,
+        use_hi_filter: bool = True,
+        output_feat_path = ''):
         """
         Initializes the VoiceConverter with default configuration, and sets up models and parameters.
         """
         self.config = Config()  # Load RVC configuration
-        self.hubert_model = (
-            None  # Initialize the Hubert model (for embedding extraction)
-        )
+        self.use_window = use_window
+        self.use_hi_filter = use_hi_filter
+        self.output_feat_path = output_feat_path
+        self.load_hubert(embedder_model)
+        self.make_output_dir()
+
+    def make_output_dir(self):
+        print(f'----- Saving outputs to folder {self.output_feat_path}')
+        os.makedirs(self.output_feat_path, exist_ok=True)
 
     def load_hubert(self, embedder_model: str):
         """
@@ -70,9 +75,6 @@ class VoiceConverter:
     def convert_audio(
         self,
         audio_input_path: str,
-        embedder_model: str = "contentvec",
-        use_window: bool = False,
-        use_hi_filter: bool = True,
         **kwargs,
     ):
         
@@ -86,8 +88,6 @@ class VoiceConverter:
                 **kwargs,
             )
 
-            self.load_hubert(embedder_model)
-
             basefilename = os.path.basename(audio_input_path)[:-4]
 
             feat_extraction(
@@ -95,8 +95,9 @@ class VoiceConverter:
                 audio, 
                 self.config, 
                 basefilename = basefilename,
-                use_window = use_window,
-                use_hi_filter = use_hi_filter,
+                use_window = self.use_window,
+                use_hi_filter = self.use_hi_filter,
+                out_folder = self.output_feat_path
             )
 
             elapsed_time = time.time() - start_time
@@ -107,6 +108,11 @@ class VoiceConverter:
             print(f"An error occurred during audio conversion: {error}")
             print(traceback.format_exc())
 
+class HubertModelWithFinalProj(HubertModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.final_proj = nn.Linear(config.hidden_size, config.classifier_proj_size)
+
 def feat_extraction(
     model, 
     audio, 
@@ -114,6 +120,7 @@ def feat_extraction(
     basefilename = '',
     use_window = False,
     use_hi_filter = True,
+    out_folder = ''
 ):
 
     if use_hi_filter:
@@ -124,11 +131,11 @@ def feat_extraction(
     if use_window:
         print('Extraction with window')
         df_feats = extraction_with_window(model, audio, config)
-        fname = f"{FEAT_PATH}/feats_{basefilename}_window.csv"
     else:
         print('Extraction without window')
         df_feats = single_extraction(model, audio, config)
-        fname = f"{FEAT_PATH}/feats_{basefilename}.csv"
+        
+    fname = f"{out_folder}/feats_{basefilename}.csv"
 
     print(f"feats contentvec: {df_feats.shape}")
     df_feats.to_csv(fname, )
