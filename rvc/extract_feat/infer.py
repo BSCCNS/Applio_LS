@@ -70,8 +70,9 @@ class VoiceConverter:
     def convert_audio(
         self,
         audio_input_path: str,
-        audio_output_path: str,
         embedder_model: str = "contentvec",
+        use_window: bool = False,
+        use_hi_filter: bool = True,
         **kwargs,
     ):
         
@@ -89,45 +90,117 @@ class VoiceConverter:
 
             basefilename = os.path.basename(audio_input_path)[:-4]
 
-            feat_extraction_external(
+            feat_extraction(
                 self.hubert_model, 
                 audio, 
-                self.config.device, 
-                basefilename = basefilename
+                self.config, 
+                basefilename = basefilename,
+                use_window = use_window,
+                use_hi_filter = use_hi_filter,
             )
 
             elapsed_time = time.time() - start_time
             print(
-                f"Conversion completed at '{audio_output_path}' in {elapsed_time:.2f} seconds."
+                f"Conversion completed in {elapsed_time:.2f} seconds."
             )
         except Exception as error:
             print(f"An error occurred during audio conversion: {error}")
             print(traceback.format_exc())
 
-def feat_extraction_external(model, audio, device, basefilename = ''):
+def feat_extraction(
+    model, 
+    audio, 
+    config, 
+    basefilename = '',
+    use_window = False,
+    use_hi_filter = True,
+):
 
-    audio = signal.filtfilt(bh, ah, audio)
+    if use_hi_filter:
+        audio = signal.filtfilt(bh, ah, audio)
+    else:
+        pass
 
+    if use_window:
+        print('Extraction with window')
+        df_feats = extraction_with_window(model, audio, config)
+        fname = f"{FEAT_PATH}/feats_{basefilename}_window.csv"
+    else:
+        print('Extraction without window')
+        df_feats = single_extraction(model, audio, config)
+        fname = f"{FEAT_PATH}/feats_{basefilename}.csv"
+
+    print(f"feats contentvec: {df_feats.shape}")
+    df_feats.to_csv(fname, )
+
+def single_extraction(model, audio, config):
     with torch.no_grad():
         audio_torch = torch.from_numpy(audio.copy()).float()
         audio_torch = audio_torch.mean(-1) if audio_torch.dim() == 2 else audio_torch
         assert audio_torch.dim() == 1, audio_torch.dim()
-        audio_torch = audio_torch.view(1, -1).to(device)
-
-        # extract features
+        audio_torch = audio_torch.view(1, -1).to(config.device)
+        
         feats = model(audio_torch)["last_hidden_state"]
-        df_feats = pd.DataFrame(feats[0].cpu())
-        return df_feats
+
+    df_feats = pd.DataFrame(feats[0].cpu())
+    return df_feats
+
+def extraction_with_window(model, audio, config):
+
+    x_pad = config.x_pad
+    x_query = config.x_query
+    x_center = config.x_center
+    x_max = config.x_max
+    sample_rate = 16000
+    window = 160
+    t_pad = sample_rate * x_pad
+    #self.t_pad_tgt = tgt_sr * self.x_pad
+    t_pad2 = t_pad * 2
+    t_query = sample_rate * x_query
+    t_center = sample_rate * x_center
+    t_max = sample_rate * x_max
+    #time_step = window / sample_rate * 1000
+
+    audio_pad = np.pad(audio, (window // 2, window // 2), mode="reflect")
+    opt_ts = []
+    if audio_pad.shape[0] > t_max:
+        audio_sum = np.zeros_like(audio)
+        for i in range(window):
+            audio_sum += audio_pad[i : i - window]
+        for t in range(t_center, audio.shape[0], t_center):
+            opt_ts.append(
+                t
+                - t_query
+                + np.where(
+                    np.abs(audio_sum[t - t_query : t + t_query])
+                    == np.abs(audio_sum[t - t_query : t + t_query]).min()
+                )[0][0]
+            )
+    s = 0
+    t = None
+    audio_pad = np.pad(audio, (t_pad, t_pad), mode="reflect")
     
-    fname = unique_file(f"{FEAT_PATH}/feats_{basefilename}", "csv")
+    df_feats_list = []
+    for t in opt_ts:
+        t = t // window * window
+        df_feats = single_extraction(
+                    model,
+                    audio_pad[s : t + t_pad2 + window],
+                    config)
+                
+        df_feats = df_feats[50:-50] #HARD CODED!!! adjust to padding length
+        print("Partial feats contentvec:",df_feats.shape)
 
-    print("feats contentvec:",df_feats.shape)
-    df_feats.to_csv(fname)
+        df_feats_list.append(df_feats)
+        s = t
+    df_feats = single_extraction(
+                    model,
+                    audio_pad[t:],
+                    config)
+    df_feats = df_feats[50:-50] #HARD CODED!!! adjust to padding length 
 
-import itertools
-def unique_file(basename, ext):
-    actualname = f"{basename}_00000.{ext}" 
-    c = itertools.count()
-    while os.path.exists(actualname):
-        actualname = f"{basename}_{str(next(c)).zfill(5)}.{ext}" 
-    return actualname
+    print("Partial feats contentvec:",df_feats.shape)
+    df_feats_list.append(df_feats)
+
+    df_feats_all = pd.concat(df_feats_list).reset_index(drop = True)
+    return df_feats_all
