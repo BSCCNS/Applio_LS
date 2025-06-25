@@ -2,8 +2,8 @@
 import glob
 from rvc.extract_feat.infer import VoiceConverter
 
-INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/ls_features/1_16k_wavs_diffsinger'
-OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features/diff_singer_16k"
+INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/milagro'
+OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features/milagro"
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
