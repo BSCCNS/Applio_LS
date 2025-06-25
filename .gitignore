@@ -17,6 +17,7 @@
 
 assets/audios
 assets/datasets
+assets/features
 logs
 rvc/models
 env

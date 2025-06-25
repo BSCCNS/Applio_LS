@@ -2,14 +2,14 @@
 import glob
 from rvc.extract_feat.infer import VoiceConverter
 
-INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios'
-OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
+INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/ls_features/1_16k_wavs_diffsinger'
+OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features/diff_singer_16k"
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
                 use_window = False,
-                use_hi_filter = True,
-                output_feat_path= f'{OUTPUT_FEAT_PATH}/experiment_1'
+                use_hi_filter = False,
+                output_feat_path= f'{OUTPUT_FEAT_PATH}'
                 ) 
 
 files = glob.glob(f'{INPUT_WAV_PATH}/*.wav')
