@@ -5,8 +5,8 @@ from rvc.extract_feat.infer import VoiceConverter
 #INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/Ha/U'
 #OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features/Ha_maria/U"
 
-INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/l/wavs'
-OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/l/feat_raw'
+INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/B/wavs'
+OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/B/feat_raw'
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
