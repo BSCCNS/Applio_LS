@@ -2,8 +2,8 @@ import os
 import sys
 import time
 import torch
-import librosa
-import logging
+#import librosa
+#import logging
 import traceback
 import numpy as np
 import pandas as pd
@@ -27,9 +27,9 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 
 from rvc.extract_feat.pipeline import Pipeline as VC
-from rvc.lib.utils import load_audio_infer, load_embedding
-from rvc.lib.tools.split_audio import process_audio, merge_audio
-from rvc.lib.algorithm.synthesizers import Synthesizer
+from rvc.lib.utils import load_audio_infer #, load_embedding
+#from rvc.lib.tools.split_audio import process_audio, merge_audio
+#from rvc.lib.algorithm.synthesizers import Synthesizer
 from rvc.configs.config import Config
 
 EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
