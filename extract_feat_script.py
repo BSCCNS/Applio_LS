@@ -1,12 +1,15 @@
-
+import sys
 import glob
 from rvc.extract_feat.infer import VoiceConverter
 
-#INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/audios/Ha/U'
-#OUTPUT_FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features/Ha_maria/U"
+#INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
+#OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/feat'
 
-INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/B/wavs'
-OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/espacio-latente-maria-main/phonems/B/feat_raw'
+args = sys.argv[1:]
+
+INPUT_WAV_PATH = args[0]
+OUTPUT_FEAT_PATH = args[1]
+ext = args[2]
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
@@ -15,7 +18,7 @@ infer_pipeline = VoiceConverter(
                 output_feat_path= f'{OUTPUT_FEAT_PATH}'
                 ) 
 
-files = glob.glob(f'{INPUT_WAV_PATH}/*.wav')
+files = glob.glob(f'{INPUT_WAV_PATH}/*.{ext}')
 
 for input in files:
     infer_pipeline.convert_audio(input)
