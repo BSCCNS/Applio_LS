@@ -91,9 +91,6 @@ class VoiceConverter:
 
             #basefilename = os.path.basename(audio_input_path)[:-4]
             basefilename = Path(audio_input_path).stem
-
-            print(basefilename)
-
             feat_extraction(
                 self.hubert_model, 
                 audio, 
