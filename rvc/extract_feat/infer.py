@@ -8,6 +8,7 @@ import traceback
 import numpy as np
 import pandas as pd
 import soundfile as sf
+from pathlib import Path
 
 from transformers import HubertModel
 from torch import nn
@@ -88,7 +89,10 @@ class VoiceConverter:
                 **kwargs,
             )
 
-            basefilename = os.path.basename(audio_input_path)[:-4]
+            #basefilename = os.path.basename(audio_input_path)[:-4]
+            basefilename = Path(audio_input_path).stem
+
+            print(basefilename)
 
             feat_extraction(
                 self.hubert_model, 
@@ -138,7 +142,7 @@ def feat_extraction(
     fname = f"{out_folder}/feats_{basefilename}.csv"
 
     print(f"feats contentvec: {df_feats.shape}")
-    df_feats.to_csv(fname, )
+    df_feats.to_csv(fname)
 
 def single_extraction(model, audio, config):
     with torch.no_grad():
