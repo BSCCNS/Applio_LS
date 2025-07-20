@@ -45,7 +45,9 @@ class VoiceConverter:
         embedder_model: str = "contentvec",
         use_window: bool = False,
         use_hi_filter: bool = True,
-        output_feat_path = ''):
+        output_feat_path = '',
+        extract_inner_layers = False,
+        n_layer = -1):
         """
         Initializes the VoiceConverter with default configuration, and sets up models and parameters.
         """
@@ -53,6 +55,10 @@ class VoiceConverter:
         self.use_window = use_window
         self.use_hi_filter = use_hi_filter
         self.output_feat_path = output_feat_path
+
+        self.extract_inner_layers = extract_inner_layers
+        self.n_layer = n_layer
+
         self.load_hubert(embedder_model)
         self.make_output_dir()
 
@@ -98,7 +104,9 @@ class VoiceConverter:
                 basefilename = basefilename,
                 use_window = self.use_window,
                 use_hi_filter = self.use_hi_filter,
-                out_folder = self.output_feat_path
+                out_folder = self.output_feat_path,
+                extract_inner_layers = self.extract_inner_layers,
+                n_layer = self.n_layer
             )
 
             elapsed_time = time.time() - start_time
@@ -121,7 +129,9 @@ def feat_extraction(
     basefilename = '',
     use_window = False,
     use_hi_filter = True,
-    out_folder = ''
+    out_folder = '',
+    extract_inner_layers = False,
+    n_layer = -1
 ):
 
     if use_hi_filter:
@@ -131,29 +141,56 @@ def feat_extraction(
 
     if use_window:
         print('Extraction with window')
-        df_feats = extraction_with_window(model, audio, config)
+        df_feats = extraction_with_window(model, 
+                                          audio, 
+                                          config, 
+                                          extract_inner_layers = extract_inner_layers,
+                                          n_layer = n_layer)
     else:
         print('Extraction without window')
-        df_feats = single_extraction(model, audio, config)
+        df_feats = single_extraction(model, 
+                                    audio, 
+                                    config, 
+                                    extract_inner_layers = extract_inner_layers,
+                                    n_layer = n_layer)
         
     fname = f"{out_folder}/feats_{basefilename}.csv"
 
     print(f"feats contentvec: {df_feats.shape}")
     df_feats.to_csv(fname)
 
-def single_extraction(model, audio, config):
+def single_extraction(
+    model, 
+    audio, 
+    config, 
+    extract_inner_layers = False,
+    n_layer = -1
+):
+    #extract_inner_layers = kwargs.get('extract_inner_layers', False)
+    #n_layer = kwargs.get('extract_inner_layers', False)
+
     with torch.no_grad():
         audio_torch = torch.from_numpy(audio.copy()).float()
         audio_torch = audio_torch.mean(-1) if audio_torch.dim() == 2 else audio_torch
         assert audio_torch.dim() == 1, audio_torch.dim()
         audio_torch = audio_torch.view(1, -1).to(config.device)
         
-        feats = model(audio_torch)["last_hidden_state"]
+        if extract_inner_layers:
+            # Forward pass with output_hidden_states=True
+            with torch.no_grad():
+                outputs = model(audio_torch, output_hidden_states=True)
+
+            # All hidden states (includes embeddings + outputs of each transformer layer)
+            hidden_states = outputs["hidden_states"] 
+            feats = hidden_states[n_layer]
+
+        else:
+            feats = model(audio_torch)["last_hidden_state"]
 
     df_feats = pd.DataFrame(feats[0].cpu())
     return df_feats
 
-def extraction_with_window(model, audio, config):
+def extraction_with_window(model, audio, config, **kwargs):
 
     x_pad = config.x_pad
     x_query = config.x_query
