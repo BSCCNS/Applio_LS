@@ -1,5 +1,6 @@
 import sys
 import glob
+import os
 from rvc.extract_feat.infer import VoiceConverter
 
 #INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
@@ -11,7 +12,9 @@ INPUT_WAV_PATH = args[0]
 OUTPUT_FEAT_PATH = args[1]
 ext = args[2]
 
-N_LAYER = 7
+os.makedirs(OUTPUT_FEAT_PATH, exist_ok=True)
+
+N_LAYER = 9
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
