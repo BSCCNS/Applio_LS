@@ -11,6 +11,7 @@ INPUT_WAV_PATH = args[0]
 OUTPUT_FEAT_PATH = args[1]
 ext = args[2]
 
+N_LAYER = 7
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
@@ -18,7 +19,7 @@ infer_pipeline = VoiceConverter(
                 use_hi_filter = False,
                 output_feat_path= f'{OUTPUT_FEAT_PATH}',
                 extract_inner_layers = True,
-                n_layer = 9
+                n_layer = N_LAYER
                 ) 
 
 files = glob.glob(f'{INPUT_WAV_PATH}/*.{ext}')
