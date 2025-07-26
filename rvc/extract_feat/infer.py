@@ -15,6 +15,8 @@ from torch import nn
 
 from scipy import signal
 
+from dotenv import load_dotenv
+
 # Constants for high-pass filter
 FILTER_ORDER = 5
 CUTOFF_FREQUENCY = 48  # Hz
