@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 root = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/GTSinger_ES'
-feat_paths = glob.glob(f'{root}/feat_layer_2/*.csv')
+feat_paths = glob.glob(f'{root}/feat/layer_2/*.csv')
 text_grid_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
 
 df_anotated_all = u.make_anotated_feat_df(feat_paths, 
