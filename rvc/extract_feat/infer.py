@@ -38,7 +38,6 @@ from rvc.configs.config import Config
 load_dotenv()
 
 EMBEDDERS_PATH = os.getenv('EMBEDDERS_PATH')
-
 #EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
 #FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
