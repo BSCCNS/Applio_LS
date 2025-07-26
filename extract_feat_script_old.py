@@ -2,9 +2,17 @@ import sys
 import glob
 import os
 from rvc.extract_feat.infer import VoiceConverter
+import torch
+
+import time
 
 #INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
 #OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/feat'
+
+if torch.cuda.is_available():
+    print("CUDA is available. GPU in use:", torch.cuda.get_device_name(0))
+else:
+    print("CUDA is not available. Using CPU.")
 
 args = sys.argv[1:]
 
@@ -15,6 +23,7 @@ ext = args[2]
 os.makedirs(OUTPUT_FEAT_PATH, exist_ok=True)
 
 N_LAYER = 9
+t0 = time.time()
 
 infer_pipeline = VoiceConverter(
                 embedder_model = "contentvec",
@@ -30,3 +39,6 @@ files = glob.glob(f'{INPUT_WAV_PATH}/*.{ext}')
 for input in files:
     infer_pipeline.convert_audio(input)
 
+t1 = time.time()
+DT = t1 - t0
+print(f'-------- Total time {DT:.4f}')

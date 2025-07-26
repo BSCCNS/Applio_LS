@@ -13,6 +13,8 @@ from pathlib import Path
 from transformers import HubertModel
 from torch import nn
 
+from dotenv import load_dotenv
+
 from scipy import signal
 
 from dotenv import load_dotenv
