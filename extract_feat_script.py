@@ -1,9 +1,15 @@
 import sys
 import glob
 from rvc.extract_feat.infer import VoiceConverter
+import torch
 
 #INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
 #OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/feat'
+
+if torch.cuda.is_available():
+    print("CUDA is available. GPU in use:", torch.cuda.get_device_name(0))
+else:
+    print("CUDA is not available. Using CPU.")
 
 args = sys.argv[1:]
 
