@@ -110,7 +110,8 @@ create_venv() {
     }
     python -m pip install --upgrade pip
 
-    install_ffmpeg
+    # install_ffmpeg
+    echo "Skipping ffmpeg installation"
     install_python_ffmpeg  
 
     log_message "Installing dependencies..."
