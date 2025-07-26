@@ -33,7 +33,11 @@ from rvc.lib.utils import load_audio_infer #, load_embedding
 #from rvc.lib.algorithm.synthesizers import Synthesizer
 from rvc.configs.config import Config
 
-EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
+load_dotenv()
+
+EMBEDDERS_PATH = os.getenv('EMBEDDERS_PATH')
+
+#EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
 #FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
 class VoiceConverter:
