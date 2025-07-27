@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # EXCLUDE_PHONES = ['<AP>']
 # tp_algn = 'text_grid'
 
-DATA_SET = 'song' #'GTSinger_ES'
+DATA_SET = 'songs' #'GTSinger_ES'
 DATA_SET_TP = None #'gt'
 EXCLUDE_PHONES =  ['AP'] #['<AP>']
 tp_algn = 'lab' #'text_grid'
