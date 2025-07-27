@@ -33,7 +33,7 @@ root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
 if tp_algn == 'text_grid':
     algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
 elif tp_algn == 'lab':
-    lab_paths = glob.glob(f'{root}/lab/*.lab')
+    algn_paths = glob.glob(f'{root}/lab/*.lab')
 
 silhouette_dict = {}
 
