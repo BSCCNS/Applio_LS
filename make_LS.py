@@ -29,6 +29,7 @@ EXCLUDE_PHONES =  ['AP'] #['<AP>']
 tp_algn = 'lab' #'text_grid'
 
 root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
+output_folder = f'{DATA_SET}_output'
 
 if tp_algn == 'text_grid':
     algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
@@ -37,12 +38,14 @@ elif tp_algn == 'lab':
 
 silhouette_dict = {}
 
-folder_plots = f'{DATA_SET}_output/plots'
-folder_feat_annotated = f'{DATA_SET}_output/feat_2d'
+folder_plots = f'{output_folder}/plots'
+folder_feat_2d = f'{output_folder}/feat_2d'
+folder_feat_768d = f'{output_folder}/feat_768d'
 
-os.makedirs(f'{DATA_SET}_output', exist_ok=True)
+os.makedirs(output_folder, exist_ok=True)
 os.makedirs(folder_plots, exist_ok=True)
-os.makedirs(folder_feat_annotated, exist_ok=True)
+os.makedirs(folder_feat_2d, exist_ok=True)
+os.makedirs(folder_feat_768d, exist_ok=True)
 
 T0 = time.time()
 
@@ -55,6 +58,8 @@ for layer in range(1,13):
                                           algn_paths, 
                                           tp_algn = tp_algn,
                                           dataset = DATA_SET_TP)
+    
+    df_anotated.to_csv(f'{folder_feat_768d}/feat_768d_layer_{layer}.csv')
     
     ### umap
     print(f'-------- umap')
@@ -72,7 +77,7 @@ for layer in range(1,13):
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_feat_annotated}/feat_2d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_feat_2d}/feat_2d_layer_{layer}.csv')
 
 
     ### plots
@@ -101,7 +106,7 @@ for layer in range(1,13):
 df = pd.DataFrame.from_dict(silhouette_dict, orient='index', columns=['silhouette'])
 df_sil = df.reset_index().rename(columns={'index': 'layer'})
 
-df_sil.to_csv(f'{folder_feat_annotated}/silhouette_layers.csv')
+df_sil.to_csv(f'{output_folder}/silhouette_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0
