@@ -18,18 +18,22 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-DATA_SET = 'GTSinger_ES'
-DATA_SET_TP = 'gt'
-EXCLUDE_PHONES = ['<AP>']
+# DATA_SET = 'GTSinger_ES'
+# DATA_SET_TP = 'gt'
+# EXCLUDE_PHONES = ['<AP>']
+# tp_algn = 'text_grid'
 
-tp_algn = 'text_grid'
+DATA_SET = 'song' #'GTSinger_ES'
+DATA_SET_TP = None #'gt'
+EXCLUDE_PHONES =  ['AP'] #['<AP>']
+tp_algn = 'lab' #'text_grid'
 
 root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
 
 if tp_algn == 'text_grid':
     algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
 elif tp_algn == 'lab':
-    algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
+    lab_paths = glob.glob(f'{root}/lab/*.lab')
 
 silhouette_dict = {}
 
