@@ -18,17 +18,25 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-root = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/GTSinger_ES'
-#feat_paths = glob.glob(f'{root}/feat/layer_2/*.csv')
-text_grid_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
+DATA_SET = 'GTSinger_ES'
+DATA_SET_TP = 'gt'
+EXCLUDE_PHONES = ['<AP>']
+
+tp_algn = 'text_grid'
+
+root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
+
+if tp_algn == 'text_grid':
+    algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
+elif tp_algn == 'lab':
+    algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
 
 silhouette_dict = {}
 
-folder_plots = 'GT_SingerES_output/plots'
-folder_feat_annotated = 'GT_SingerES_output/feat_2d'
+folder_plots = f'{DATA_SET}_output/plots'
+folder_feat_annotated = f'{DATA_SET}_output/feat_2d'
 
-os.makedirs('GT_SingerES_output', exist_ok=True)
-
+os.makedirs(f'{DATA_SET}_output', exist_ok=True)
 os.makedirs(folder_plots, exist_ok=True)
 os.makedirs(folder_feat_annotated, exist_ok=True)
 
@@ -40,15 +48,15 @@ for layer in range(1,13):
     print(f'-------- Working on layer {layer}')
     feat_paths = glob.glob(f'{root}/feat/layer_{layer}/*.csv')
     df_anotated = u.make_anotated_feat_df(feat_paths, 
-                                          text_grid_paths, 
-                                          tp_algn = 'text_grid',
-                                          dataset = 'gt')
+                                          algn_paths, 
+                                          tp_algn = tp_algn,
+                                          dataset = DATA_SET_TP)
     
     ### umap
     print(f'-------- umap')
     umap2 = u.train_umap(
         df_anotated,
-        exclude_phones = ['<AP>'],
+        exclude_phones = EXCLUDE_PHONES,
         n_components=2, 
         n_neighbors=100, 
         min_dist=0.1,
@@ -71,7 +79,7 @@ for layer in range(1,13):
             alpha = 0.25, 
             s = 0.1,
             show_global=True)
-    plt.savefig(f'{folder_plots}/LS_GTSinger_ES_layer_{layer}')
+    plt.savefig(f'{folder_plots}/LS_{DATA_SET}_layer_{layer}')
     
     ### silhouettes
     print(f'-------- silhouette')
