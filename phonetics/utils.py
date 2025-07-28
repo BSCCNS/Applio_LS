@@ -70,9 +70,12 @@ def train_umap(
     folder = ''):
 
     # train umap with dataset without silence
-    mask = ~df_anotated['phone_base'].isin(exclude_phones)
+    if exclude_phones is not None:
+        mask = ~df_anotated['phone_base'].isin(exclude_phones)
+        df_filter = df_anotated[mask]
+    else:
+        df_filter = df_anotated
 
-    df_filter = df_anotated[mask]
     X = df_filter.drop(columns=['phone_base', 'song']).values
 
     print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}')
