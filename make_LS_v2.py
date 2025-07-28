@@ -170,7 +170,7 @@ def compute_MI(df_anotated, n_clusters = 50):
     cluster_assignments = kmeans.fit_predict(X)
 
     mi = mutual_info_score(y, cluster_assignments)
-    
+
     print(f"'-------- Mutual Information (MI-phone): {mi:.4f}")
     return mi
 
@@ -184,7 +184,7 @@ def compute_metric_for_layer(df_anotated, param_dict):
     if exclude_phones is None:
         df = df_anotated
     else:
-        mask = ~df_anotated.isin(exclude_phones)
+        mask = ~df_anotated["phone_base"].isin(exclude_phones)
         df = df_anotated[mask]
 
     sil = compute_silhouette(df)
@@ -225,8 +225,11 @@ for layer in range(1,13):
     dt = t1 - t0
     print(f'------------- Time for layer {layer}: {dt}')
 
+with open(f"{folder_dict["experiment_folder"]}/metric_layers.json", "w") as outfile: 
+        json.dump(metric_dict, outfile, indent=4)
+
 df_metric = make_df_metric(metric_dict)
-df_metric.to_csv(f'{folder_dict["output_folder"]}/metric_layers.csv')
+df_metric.to_csv(f'{folder_dict["experiment_folder"]}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0
