@@ -43,7 +43,7 @@ def read_param_dict(parser):
 
 param_dict = read_param_dict(parser)
 
-pipeline_params = param_dict['pipeline_params']
+#pipeline_params = param_dict['pipeline_params']
 
 DATA_SET = param_dict["dataset"] #'GTSinger_ES'
 #DATA_SET_TP = param_dict["dataset_tp"] #'gt'
