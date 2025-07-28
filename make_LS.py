@@ -14,6 +14,9 @@ from phonetics import plots as plots
 from umap import UMAP
 from sklearn.metrics import silhouette_score, silhouette_samples
 
+from sklearn.cluster import KMeans
+from sklearn.metrics import mutual_info_score
+
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -25,8 +28,9 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 DATA_SET = 'songs' #'GTSinger_ES'
 DATA_SET_TP = None #'gt'
-EXCLUDE_PHONES =  ['AP'] #['<AP>']
+EXCLUDE_PHONES =  None #['<AP>']
 tp_algn = 'lab' #'text_grid'
+K_MI = 50
 
 root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
 output_folder = f'{DATA_SET}_output'
@@ -37,6 +41,7 @@ elif tp_algn == 'lab':
     algn_paths = glob.glob(f'{root}/lab/*.lab')
 
 silhouette_dict = {}
+mi_dict = {}
 
 folder_plots = f'{output_folder}/plots'
 folder_feat_2d = f'{output_folder}/feat_2d'
@@ -82,7 +87,7 @@ for layer in range(1,13):
 
     ### plots
     print(f'-------- plot')
-    my_phones = list(df_anotated['phone_base'].value_counts().to_dict().keys())[0:15]
+    my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'AP']
     plots.make_tagged_LS_plot(df_proj_anotated,
             phones = my_phones,
             alpha = 0.25, 
@@ -91,13 +96,23 @@ for layer in range(1,13):
     plt.savefig(f'{folder_plots}/LS_{DATA_SET}_layer_{layer}')
     
     ### silhouettes
-    print(f'-------- silhouette')
+    print(f'-------- Computing silhouette')
     X1 = df_anotated.drop(columns = ['phone_base', 'song']).values
     y1 = df_anotated['phone_base'].values
     sil_score = silhouette_score(X1, y1, metric='cosine')
 
     silhouette_dict[layer] = sil_score
     print(f'--------- sil_score {sil_score}')
+
+    ### MI
+    print(f'-------- Computing MI')
+    kmeans = KMeans(n_clusters=K_MI, random_state=42)
+    cluster_assignments = kmeans.fit_predict(X1)
+
+    # Step 2: Compute mutual information with phone labels
+    mi = mutual_info_score(y1, cluster_assignments)
+    print(f"Mutual Information (MI-phone): {mi:.4f}")
+    mi_dict[layer] = mi
 
     t1 = time.time()
     dt = t1 - t0
