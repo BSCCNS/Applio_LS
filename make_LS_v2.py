@@ -21,18 +21,17 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# DATA_SET = 'GTSinger_ES'
-# DATA_SET_TP = 'gt'
-# EXCLUDE_PHONES = ['<AP>']
-# tp_algn = 'text_grid'
+DATA_SET = 'GTSinger_ES'
+DATA_SET_TP = 'gt'
+EXCLUDE_PHONES = None #['<AP>']
+tp_algn = 'text_grid'
 
-DATA_SET = 'songs' #'GTSinger_ES'
-DATA_SET_TP = None #'gt'
-EXCLUDE_PHONES =  None #['<AP>']
-tp_algn = 'lab' #'text_grid'
+# DATA_SET = 'songs'
+# DATA_SET_TP = None 
+# EXCLUDE_PHONES =  None 
+# tp_algn = 'lab' 
+
 K_MI = 50
-
-
 
 root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
 
