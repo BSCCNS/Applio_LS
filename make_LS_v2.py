@@ -43,9 +43,8 @@ def read_param_dict(parser):
 
 param_dict = read_param_dict(parser)
 
-#pipeline_params = param_dict['pipeline_params']
 
-DATA_SET = param_dict["dataset"] #'GTSinger_ES'
+#DATA_SET = param_dict["dataset"] #'GTSinger_ES'
 #DATA_SET_TP = param_dict["dataset_tp"] #'gt'
 #EXCLUDE_PHONES = param_dict["exclude_phones"] #None #['<AP>']
 #tp_algn = param_dict["text_grid"]  #'text_grid'
@@ -57,57 +56,66 @@ DATA_SET = param_dict["dataset"] #'GTSinger_ES'
 # tp_algn = 'lab' 
 
 
-
 #############################################################
 
-root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
+#root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/GTSinger_ES'
 
-def boiler_plate(input_data_set, param_dict):
-    output_folder = f'{input_data_set}_output'
+def boiler_plate(param_dict):
 
+    input_path = param_dict["input_path"]
+    experiment = param_dict["experiment"]
+    
     tp_algn = param_dict['tp_algn']
 
     if tp_algn == 'text_grid':
-        algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
+        algn_paths = glob.glob(f'{input_path}/TextGrid/*.TextGrid')
     elif tp_algn == 'lab':
-        algn_paths = glob.glob(f'{root}/lab/*.lab')
+        algn_paths = glob.glob(f'{input_path}/lab/*.lab')
 
-    folder_plots = f'{output_folder}/plots'
-    folder_feat_2d = f'{output_folder}/feat_2d'
-    folder_feat_768d = f'{output_folder}/feat_768d'
+    experiment_folder = f'experiments/{experiment}'
+    plots_folder = f'{experiment_folder}/plots'
+    feat_2d_folder = f'{experiment_folder}/feat_2d'
+    feat_768d_folder = f'{experiment_folder}/feat_768d'
 
-    os.makedirs(output_folder, exist_ok=True)
-    os.makedirs(folder_plots, exist_ok=True)
-    os.makedirs(folder_feat_2d, exist_ok=True)
-    os.makedirs(folder_feat_768d, exist_ok=True)
+    folders = [experiment_folder, plots_folder, feat_2d_folder, feat_768d_folder]
 
-    with open(f"{output_folder}/metadata.json", "w") as outfile: 
+    for fo in folders:
+        os.makedirs(fo, exist_ok=True)
+
+    with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
         json.dump(param_dict, outfile, indent=4)
 
     folder_dict = {
-        'output_folder': output_folder,
-        'folder_plots': folder_plots,
-        'folder_feat_2d': folder_feat_2d,
-        'folder_feat_768d': folder_feat_768d
+        'experiment_folder': experiment_folder,
+        'plots_folder': plots_folder,
+        'feat_2d_folder': feat_2d_folder,
+        'feat_768d_folder': feat_768d_folder
         }
 
     return algn_paths, folder_dict 
 
-def make_df_annotated(layer,
-                      tp_algn = None, 
-                      dataset_tp = None):
+def make_df_annotated(layer, param_dict):
     print(f'-------- df annotated')
-    feat_paths = glob.glob(f'{root}/feat/layer_{layer}/*.csv')
+
+    input_path = param_dict["input_path"]
+    tp_algn = param_dict["tp_algn"]
+    dataset_tp = param_dict["dataset_tp"]
+
+    feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
     df_anotated = u.make_anotated_feat_df(feat_paths, 
                                           algn_paths, 
                                           tp_algn = tp_algn,
                                           dataset = dataset_tp)
     
-    df_anotated.to_csv(f'{folder_dict["folder_feat_768d"]}/feat_768d_layer_{layer}.csv')
+    df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
     return df_anotated
 
-def make_df_projected_annotated_2d(df_anotated, exclude_phones = None):
+def make_df_projected_annotated_2d(df_anotated, param_dict):
+    
+    exclude_phones = param_dict['exclude_phones_plot']
+    print(f'Excluding phones {exclude_phones} from plot')
+    
     print(f'-------- umap')
     umap2 = u.train_umap(
         df_anotated,
@@ -123,7 +131,7 @@ def make_df_projected_annotated_2d(df_anotated, exclude_phones = None):
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_dict["folder_feat_2d"]}/feat_2d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_dict["feat_2d_folder"]}/feat_2d_layer_{layer}.csv')
 
     return df_proj_anotated
 
@@ -135,7 +143,7 @@ def make_plot(df_proj_anotated):
             alpha = 0.25, 
             s = 0.1,
             show_global=True)
-    plt.savefig(f'{folder_dict["folder_plots"]}/LS_layer_{layer}')
+    plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
 
 def extract_Xy(df_anotated):
     X = df_anotated.drop(columns = ['phone_base', 'song']).values
@@ -152,17 +160,41 @@ def compute_silhouette(df_anotated):
     return sil_score 
 
 def compute_MI(df_anotated, n_clusters = 50):
-    X, y = extract_Xy(df_anotated)
     print(f'-------- Computing MI')
+
+    X, y = extract_Xy(df_anotated)
+
     kmeans = KMeans(n_clusters = n_clusters, 
                     random_state=42)
+    
     cluster_assignments = kmeans.fit_predict(X)
+
     mi = mutual_info_score(y, cluster_assignments)
+    
     print(f"'-------- Mutual Information (MI-phone): {mi:.4f}")
     return mi
 
-def df_metric(metric_dict, metric_name = 'silhouette'):
-    df = pd.DataFrame.from_dict(metric_dict, orient='index', columns=[metric_name])
+def compute_metric_for_layer(df_anotated, param_dict):
+    
+    K_MI = param_dict["K_MI"]
+    exclude_phones = param_dict['exclude_phones_metric']
+
+    print(f'Excluding phones {exclude_phones} from metric computations')
+    
+    if exclude_phones is None:
+        df = df_anotated
+    else:
+        mask = ~df_anotated.isin(exclude_phones)
+        df = df_anotated[mask]
+
+    sil = compute_silhouette(df)
+    mi = compute_MI(df, n_clusters = K_MI)
+
+    return {'sil': sil, 'mi': mi}
+
+
+def make_df_metric(metric_dict):
+    df = pd.DataFrame.from_dict(metric_dict, orient='index')
     df = df.reset_index().rename(columns={'index': 'layer'})
 
     return df
@@ -172,40 +204,29 @@ def df_metric(metric_dict, metric_name = 'silhouette'):
 
 T0 = time.time()
 
-algn_paths, folder_dict = boiler_plate(param_dict["dataset"], param_dict)
-silhouette_dict = {}
-mi_dict = {}
+algn_paths, folder_dict = boiler_plate(param_dict)
+metric_dict = {}
 
 for layer in range(1,13):
 
     t0 = time.time()
     print(f'-------- Working on layer {layer}')
 
-    df_anotated = make_df_annotated(layer,
-                                    tp_algn = param_dict["tp_algn"], 
-                                    dataset_tp = param_dict["dataset_tp"]) 
-    
-    df_proj_anotated = make_df_projected_annotated_2d(df_anotated,
-                                                      exclude_phones = param_dict['exclude_phones']) 
-    make_plot(df_proj_anotated)
+    df_anotated = make_df_annotated(layer, param_dict) 
+    metric_dict[layer] = compute_metric_for_layer(df_anotated, param_dict)
 
-    sil_score = compute_silhouette(df_anotated)
-    mi = compute_MI(df_anotated, 
-                    n_clusters = param_dict["K_MI"])
-
-    silhouette_dict[layer] = sil_score
-    mi_dict[layer] = mi
+    if param_dict.get("projection_2d", True):
+        df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
+        make_plot(df_proj_anotated)
+    else:
+        print('Skipping 2d projection and plots')
     
     t1 = time.time()
     dt = t1 - t0
     print(f'------------- Time for layer {layer}: {dt}')
 
-
-df_sil = df_metric(silhouette_dict, metric_name = 'silhouette')
-df_mi  = df_metric(mi_dict, metric_name = 'mi')
-df_metrics = df_sil.join(df_mi)
-
-df_metrics.to_csv(f'{folder_dict["output_folder"]}/metric_layers.csv')
+df_metric = make_df_metric(metric_dict)
+df_metric.to_csv(f'{folder_dict["output_folder"]}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0
