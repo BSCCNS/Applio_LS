@@ -94,34 +94,38 @@ for layer in range(1,13):
             s = 0.1,
             show_global=True)
     plt.savefig(f'{folder_plots}/LS_{DATA_SET}_layer_{layer}')
+
+    ### X y
+    X = df_anotated.drop(columns = ['phone_base', 'song']).values
+    y = df_anotated['phone_base'].values
     
     ### silhouettes
     print(f'-------- Computing silhouette')
-    X1 = df_anotated.drop(columns = ['phone_base', 'song']).values
-    y1 = df_anotated['phone_base'].values
-    sil_score = silhouette_score(X1, y1, metric='cosine')
-
+    sil_score = silhouette_score(X, y, metric='cosine')
     silhouette_dict[layer] = sil_score
     print(f'--------- sil_score {sil_score}')
+
 
     ### MI
     print(f'-------- Computing MI')
     kmeans = KMeans(n_clusters=K_MI, random_state=42)
-    cluster_assignments = kmeans.fit_predict(X1)
-
-    # Step 2: Compute mutual information with phone labels
-    mi = mutual_info_score(y1, cluster_assignments)
-    print(f"Mutual Information (MI-phone): {mi:.4f}")
+    cluster_assignments = kmeans.fit_predict(X)
+    mi = mutual_info_score(y, cluster_assignments)
     mi_dict[layer] = mi
-
+    print(f"'-------- Mutual Information (MI-phone): {mi:.4f}")
+    
     t1 = time.time()
     dt = t1 - t0
     print(f'------------- Time for layer {layer}: {dt}')
 
-df = pd.DataFrame.from_dict(silhouette_dict, orient='index', columns=['silhouette'])
-df_sil = df.reset_index().rename(columns={'index': 'layer'})
-
+df_sil = pd.DataFrame.from_dict(silhouette_dict, orient='index', columns=['silhouette'])
+df_sil = df_sil.reset_index().rename(columns={'index': 'layer'})
 df_sil.to_csv(f'{output_folder}/silhouette_layers.csv')
+
+df_mi = pd.DataFrame.from_dict(mi_dict, orient='index', columns=['mi'])
+df_mi = df_mi.reset_index().rename(columns={'index': 'layer'})
+df_mi.to_csv(f'{output_folder}/mi_layers.csv')
+
 
 T1 = time.time()    
 DT = T1 - T0
