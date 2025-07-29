@@ -130,7 +130,7 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         min_dist=0.1,
         save_model = False,
         folder = None)
-    
+        
     df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
                                                     umap2,
                                                     save_df = False,
