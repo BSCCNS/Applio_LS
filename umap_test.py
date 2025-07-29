@@ -2,14 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
-#from phonetics import phone_info as ph_i 
 from phonetics import plots as plots
-from phonetics import metrics as ph_metrics
-
 
 #############################################################
 
-df_anotated = pd.read_csv("")
+df_anotated = pd.read_csv("/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_v0/feat_768d/feat_768d_layer_12.csv")
 
 print(f'-------- umap')
 umap2 = u.train_umap(
@@ -25,6 +22,8 @@ df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated,
                                                 umap2,
                                                 save_df = False,
                                                 folder = None)
+
+df_proj_anotated.to_csv('df_proj_anotated_test.csv')
 
 def make_plot(df_proj_anotated):
     print(f'-------- plot')
