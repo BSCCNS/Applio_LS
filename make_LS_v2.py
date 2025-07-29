@@ -72,7 +72,7 @@ def boiler_plate(param_dict):
 
     if param_dict.get("output_feat_768d", True):
         feat_768d_folder = f'{experiment_folder}/feat_768d'
-        folders += feat_768d_folder
+        folders += [feat_768d_folder]
 
     if param_dict.get("projection_2d", True):
         plots_folder = f'{experiment_folder}/plots'
