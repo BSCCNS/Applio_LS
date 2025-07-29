@@ -55,8 +55,6 @@ param_dict = read_param_dict(parser)
 
 #############################################################
 
-#root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/GTSinger_ES'
-
 def boiler_plate(param_dict):
 
     input_path = param_dict["input_path"]
@@ -70,11 +68,20 @@ def boiler_plate(param_dict):
         algn_paths = glob.glob(f'{input_path}/lab/*.lab')
 
     experiment_folder = f'experiments/{experiment}'
-    plots_folder = f'{experiment_folder}/plots'
-    feat_2d_folder = f'{experiment_folder}/feat_2d'
-    feat_768d_folder = f'{experiment_folder}/feat_768d'
+    folders = [experiment_folder]
 
-    folders = [experiment_folder, plots_folder, feat_2d_folder, feat_768d_folder]
+    if param_dict.get("output_feat_768d", True):
+        feat_768d_folder = f'{experiment_folder}/feat_768d'
+        folders += feat_768d_folder
+
+    if param_dict.get("projection_2d", True):
+        plots_folder = f'{experiment_folder}/plots'
+        feat_2d_folder = f'{experiment_folder}/feat_2d'
+        folders += [plots_folder, feat_2d_folder]
+
+    print(f'folders to be created : {folders}')
+    
+    #folders = [experiment_folder, plots_folder, feat_2d_folder, feat_768d_folder]
 
     for fo in folders:
         os.makedirs(fo, exist_ok=True)
@@ -143,62 +150,10 @@ def make_plot(df_proj_anotated):
             show_global=True)
     plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
 
-# def extract_Xy(df_anotated):
-#     X = df_anotated.drop(columns = ['phone_base', 'song']).values
-#     y = df_anotated['phone_base'].values
-
-#     return X, y
-
-# def compute_silhouette(df_anotated):
-#     print(f'-------- Computing silhouette')
-
-#     X, y = extract_Xy(df_anotated)
-#     sil_score = silhouette_score(X, y, metric='cosine')
-#     print(f'--------- sil_score {sil_score}')
-#     return sil_score 
-
-# def compute_MI(df_anotated, n_clusters = 50):
-#     print(f'-------- Computing MI')
-
-#     X, y = extract_Xy(df_anotated)
-
-#     kmeans = KMeans(n_clusters = n_clusters, 
-#                     random_state=42)
-    
-#     cluster_assignments = kmeans.fit_predict(X)
-
-#     mi = mutual_info_score(y, cluster_assignments)
-
-#     print(f"-------- Mutual Information (MI-phone): {mi:.4f}")
-#     return mi
-
-# def compute_metric_for_layer(df_anotated, param_dict):
-    
-#     K_MI = param_dict["K_MI"]
-#     exclude_phones = param_dict['exclude_phones_metric']
-
-#     print(f'Excluding phones {exclude_phones} from metric computations')
-    
-#     if exclude_phones is None:
-#         df = df_anotated
-#     else:
-#         mask = ~df_anotated["phone_base"].isin(exclude_phones)
-#         df = df_anotated[mask]
-
-#     sil = compute_silhouette(df)
-#     mi = compute_MI(df, n_clusters = K_MI)
-
-#     return {'sil': sil, 'mi': mi}
-
-
-# def make_df_metric(metric_dict):
-#     df = pd.DataFrame.from_dict(metric_dict, orient='index')
-#     df = df.reset_index().rename(columns={'index': 'layer'})
-
-#     return df
 
 #############################################################
-
+#### Pipeline
+#############################################################
 
 T0 = time.time()
 
