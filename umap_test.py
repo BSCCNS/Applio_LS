@@ -1,8 +1,19 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
 from phonetics import plots as plots
+
+N_CORES = "4"
+
+os.environ["OMP_NUM_THREADS"] = N_CORES
+os.environ["OPENBLAS_NUM_THREADS"] = N_CORES
+os.environ["MKL_NUM_THREADS"] = N_CORES
+os.environ["VECLIB_MAXIMUM_THREADS"] = N_CORES
+os.environ["NUMEXPR_NUM_THREADS"] = N_CORES
+
+
 
 #############################################################
 
