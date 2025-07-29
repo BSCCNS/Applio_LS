@@ -68,33 +68,23 @@ def boiler_plate(param_dict):
         algn_paths = glob.glob(f'{input_path}/lab/*.lab')
 
     experiment_folder = f'experiments/{experiment}'
-    folders = [experiment_folder]
+    folder_dict = {'experiment_folder': experiment_folder}
 
     if param_dict.get("output_feat_768d", True):
-        feat_768d_folder = f'{experiment_folder}/feat_768d'
-        folders += [feat_768d_folder]
+        folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
 
     if param_dict.get("projection_2d", True):
-        plots_folder = f'{experiment_folder}/plots'
-        feat_2d_folder = f'{experiment_folder}/feat_2d'
-        folders += [plots_folder, feat_2d_folder]
-
-    print(f'folders to be created : {folders}')
+        folder_dict.update(
+            {'feat_2d_folder': f'{experiment_folder}/feat_2d',
+              'plots_folder' : f'{experiment_folder}/plots'})
+        
+    print(f'folders to be created : {folder_dict.values()}')
     
-    #folders = [experiment_folder, plots_folder, feat_2d_folder, feat_768d_folder]
-
-    for fo in folders:
+    for fo in folder_dict.values():
         os.makedirs(fo, exist_ok=True)
 
     with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
         json.dump(param_dict, outfile, indent=4)
-
-    folder_dict = {
-        'experiment_folder': experiment_folder,
-        'plots_folder': plots_folder,
-        'feat_2d_folder': feat_2d_folder,
-        'feat_768d_folder': feat_768d_folder
-        }
 
     return algn_paths, folder_dict 
 
