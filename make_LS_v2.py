@@ -11,13 +11,10 @@ import argparse
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
-from phonetics import phone_info as ph_i 
+#from phonetics import phone_info as ph_i 
 from phonetics import plots as plots
-from umap import UMAP
-from sklearn.metrics import silhouette_score, silhouette_samples
+from phonetics import metrics as ph_metrics
 
-from sklearn.cluster import KMeans
-from sklearn.metrics import mutual_info_score
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -102,6 +99,7 @@ def make_df_annotated(layer, param_dict):
     dataset_tp = param_dict["dataset_tp"]
 
     feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
+
     df_anotated = u.make_anotated_feat_df(feat_paths, 
                                           algn_paths, 
                                           tp_algn = tp_algn,
@@ -145,59 +143,59 @@ def make_plot(df_proj_anotated):
             show_global=True)
     plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
 
-def extract_Xy(df_anotated):
-    X = df_anotated.drop(columns = ['phone_base', 'song']).values
-    y = df_anotated['phone_base'].values
+# def extract_Xy(df_anotated):
+#     X = df_anotated.drop(columns = ['phone_base', 'song']).values
+#     y = df_anotated['phone_base'].values
 
-    return X, y
+#     return X, y
 
-def compute_silhouette(df_anotated):
-    print(f'-------- Computing silhouette')
+# def compute_silhouette(df_anotated):
+#     print(f'-------- Computing silhouette')
 
-    X, y = extract_Xy(df_anotated)
-    sil_score = silhouette_score(X, y, metric='cosine')
-    print(f'--------- sil_score {sil_score}')
-    return sil_score 
+#     X, y = extract_Xy(df_anotated)
+#     sil_score = silhouette_score(X, y, metric='cosine')
+#     print(f'--------- sil_score {sil_score}')
+#     return sil_score 
 
-def compute_MI(df_anotated, n_clusters = 50):
-    print(f'-------- Computing MI')
+# def compute_MI(df_anotated, n_clusters = 50):
+#     print(f'-------- Computing MI')
 
-    X, y = extract_Xy(df_anotated)
+#     X, y = extract_Xy(df_anotated)
 
-    kmeans = KMeans(n_clusters = n_clusters, 
-                    random_state=42)
+#     kmeans = KMeans(n_clusters = n_clusters, 
+#                     random_state=42)
     
-    cluster_assignments = kmeans.fit_predict(X)
+#     cluster_assignments = kmeans.fit_predict(X)
 
-    mi = mutual_info_score(y, cluster_assignments)
+#     mi = mutual_info_score(y, cluster_assignments)
 
-    print(f"'-------- Mutual Information (MI-phone): {mi:.4f}")
-    return mi
+#     print(f"-------- Mutual Information (MI-phone): {mi:.4f}")
+#     return mi
 
-def compute_metric_for_layer(df_anotated, param_dict):
+# def compute_metric_for_layer(df_anotated, param_dict):
     
-    K_MI = param_dict["K_MI"]
-    exclude_phones = param_dict['exclude_phones_metric']
+#     K_MI = param_dict["K_MI"]
+#     exclude_phones = param_dict['exclude_phones_metric']
 
-    print(f'Excluding phones {exclude_phones} from metric computations')
+#     print(f'Excluding phones {exclude_phones} from metric computations')
     
-    if exclude_phones is None:
-        df = df_anotated
-    else:
-        mask = ~df_anotated["phone_base"].isin(exclude_phones)
-        df = df_anotated[mask]
+#     if exclude_phones is None:
+#         df = df_anotated
+#     else:
+#         mask = ~df_anotated["phone_base"].isin(exclude_phones)
+#         df = df_anotated[mask]
 
-    sil = compute_silhouette(df)
-    mi = compute_MI(df, n_clusters = K_MI)
+#     sil = compute_silhouette(df)
+#     mi = compute_MI(df, n_clusters = K_MI)
 
-    return {'sil': sil, 'mi': mi}
+#     return {'sil': sil, 'mi': mi}
 
 
-def make_df_metric(metric_dict):
-    df = pd.DataFrame.from_dict(metric_dict, orient='index')
-    df = df.reset_index().rename(columns={'index': 'layer'})
+# def make_df_metric(metric_dict):
+#     df = pd.DataFrame.from_dict(metric_dict, orient='index')
+#     df = df.reset_index().rename(columns={'index': 'layer'})
 
-    return df
+#     return df
 
 #############################################################
 
@@ -213,7 +211,7 @@ for layer in range(1,13):
     print(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
-    metric_dict[layer] = compute_metric_for_layer(df_anotated, param_dict)
+    metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
 
     if param_dict.get("projection_2d", True):
         df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
@@ -226,7 +224,7 @@ for layer in range(1,13):
     print(f'------------- Time for layer {layer}: {dt}')
 
 exp_folder = folder_dict["experiment_folder"]
-df_metric = make_df_metric(metric_dict)
+df_metric = ph_metrics.make_df_metric(metric_dict)
 df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 
 T1 = time.time()    
