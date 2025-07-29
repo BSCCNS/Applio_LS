@@ -5,16 +5,6 @@ import matplotlib.pyplot as plt
 from phonetics import utils as u
 from phonetics import plots as plots
 
-N_CORES = "4"
-
-os.environ["OMP_NUM_THREADS"] = N_CORES
-os.environ["OPENBLAS_NUM_THREADS"] = N_CORES
-os.environ["MKL_NUM_THREADS"] = N_CORES
-os.environ["VECLIB_MAXIMUM_THREADS"] = N_CORES
-os.environ["NUMEXPR_NUM_THREADS"] = N_CORES
-
-
-
 #############################################################
 
 df_anotated = pd.read_csv("/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_v0/feat_768d/feat_768d_layer_12.csv")
@@ -26,7 +16,7 @@ exclude_phones = None,
 n_components=2, 
 n_neighbors=100, 
 min_dist=0.1,
-n_jobs=4,
+n_jobs=-1,
 save_model = False,
 folder = None)
     
@@ -34,7 +24,6 @@ df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated,
                                                 umap2,
                                                 save_df = False,
                                                 folder = None)
-
 df_proj_anotated.to_csv('df_proj_anotated_test.csv')
 
 def make_plot(df_proj_anotated):
