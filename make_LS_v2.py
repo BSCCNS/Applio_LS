@@ -225,11 +225,12 @@ for layer in range(1,13):
     dt = t1 - t0
     print(f'------------- Time for layer {layer}: {dt}')
 
-with open(f"{folder_dict["experiment_folder"]}/metric_layers.json", "w") as outfile: 
+exp_folder = folder_dict["experiment_folder"]
+with open(f'{exp_folder}/metric_layers.json', "w") as outfile: 
         json.dump(metric_dict, outfile, indent=4)
 
 df_metric = make_df_metric(metric_dict)
-df_metric.to_csv(f'{folder_dict["experiment_folder"]}/metric_layers.csv')
+df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0
