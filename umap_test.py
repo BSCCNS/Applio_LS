@@ -15,6 +15,7 @@ exclude_phones = None,
 n_components=2, 
 n_neighbors=100, 
 min_dist=0.1,
+n_jobs=4,
 save_model = False,
 folder = None)
     

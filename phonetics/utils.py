@@ -66,6 +66,7 @@ def train_umap(
     n_components=3, 
     n_neighbors=100, 
     min_dist=0.2,
+    n_jobs = 4,
     save_model = False,
     folder = ''):
 
@@ -82,7 +83,8 @@ def train_umap(
     reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
-                random_state=42)
+                random_state=42,
+                n_jobs=n_jobs)
 
     reducer.fit(X)
 
