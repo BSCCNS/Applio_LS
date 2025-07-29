@@ -78,9 +78,9 @@ def boiler_plate(param_dict):
             {'feat_2d_folder': f'{experiment_folder}/feat_2d',
               'plots_folder' : f'{experiment_folder}/plots'})
         
-    print(f'folders to be created : {folder_dict.values()}')
+    print(f'folders to be created : {list(folder_dict.values())}')
     
-    for fo in folder_dict.values():
+    for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
 
     with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
@@ -102,7 +102,8 @@ def make_df_annotated(layer, param_dict):
                                           tp_algn = tp_algn,
                                           dataset = dataset_tp)
     
-    df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
+    if param_dict.get("output_feat_768d", True):
+        df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
     return df_anotated
 
