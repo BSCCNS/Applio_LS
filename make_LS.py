@@ -84,7 +84,7 @@ def boiler_plate(param_dict):
         os.makedirs(fo, exist_ok=True)
 
     with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
-        json.dump(param_dict, outfile, indent=4)
+        json.dump(param_dict, outfile, indent=2)
 
     return algn_paths, folder_dict 
 
