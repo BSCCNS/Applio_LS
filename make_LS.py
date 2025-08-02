@@ -1,91 +1,137 @@
 import glob
 import joblib
 import os 
+import json
 
 import time
 
 import pandas as pd
 #from pathlib import Path
+import argparse
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
-from phonetics import phone_info as ph_i 
+#from phonetics import phone_info as ph_i 
 from phonetics import plots as plots
-from umap import UMAP
-from sklearn.metrics import silhouette_score, silhouette_samples
+from phonetics import metrics as ph_metrics
 
-from sklearn.cluster import KMeans
-from sklearn.metrics import mutual_info_score
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# DATA_SET = 'GTSinger_ES'
-# DATA_SET_TP = 'gt'
-# EXCLUDE_PHONES = ['<AP>']
-# tp_algn = 'text_grid'
+#############################################################
 
-DATA_SET = 'songs' #'GTSinger_ES'
-DATA_SET_TP = None #'gt'
-EXCLUDE_PHONES =  None #['<AP>']
-tp_algn = 'lab' #'text_grid'
-K_MI = 50
+parser = argparse.ArgumentParser(
+                    prog='LS',
+                    description='Extract LS',
+                    epilog='Ask me for help')
 
-root = f'/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/{DATA_SET}'
-output_folder = f'{DATA_SET}_output'
+# Define named arguments
+parser.add_argument('--parfile', type=str, required=True, help="Path to the parameter file")
+#parser.add_argument('--stage', type=str, required=True, help="Optional argument")
 
-if tp_algn == 'text_grid':
-    algn_paths = glob.glob(f'{root}/TextGrid/*.TextGrid')
-elif tp_algn == 'lab':
-    algn_paths = glob.glob(f'{root}/lab/*.lab')
+def read_param_dict(parser):
+    args = parser.parse_args()
+    json_file = open(args.parfile)
+    param_dict = json.load(json_file)
+    json_file.close()
+    return param_dict
 
-silhouette_dict = {}
-mi_dict = {}
+param_dict = read_param_dict(parser)
 
-folder_plots = f'{output_folder}/plots'
-folder_feat_2d = f'{output_folder}/feat_2d'
-folder_feat_768d = f'{output_folder}/feat_768d'
 
-os.makedirs(output_folder, exist_ok=True)
-os.makedirs(folder_plots, exist_ok=True)
-os.makedirs(folder_feat_2d, exist_ok=True)
-os.makedirs(folder_feat_768d, exist_ok=True)
+#DATA_SET = param_dict["dataset"] #'GTSinger_ES'
+#DATA_SET_TP = param_dict["dataset_tp"] #'gt'
+#EXCLUDE_PHONES = param_dict["exclude_phones"] #None #['<AP>']
+#tp_algn = param_dict["text_grid"]  #'text_grid'
+#K_MI = param_dict["K_MI"] # 50
 
-T0 = time.time()
+# DATA_SET = 'songs'
+# DATA_SET_TP = None 
+# EXCLUDE_PHONES =  None 
+# tp_algn = 'lab' 
 
-for layer in range(1,13):
 
-    t0 = time.time()
-    print(f'-------- Working on layer {layer}')
-    feat_paths = glob.glob(f'{root}/feat/layer_{layer}/*.csv')
+#############################################################
+
+def boiler_plate(param_dict):
+
+    input_path = param_dict["input_path"]
+    experiment = param_dict["experiment"]
+    
+    tp_algn = param_dict['tp_algn']
+
+    if tp_algn == 'text_grid':
+        algn_paths = glob.glob(f'{input_path}/TextGrid/*.TextGrid')
+    elif tp_algn == 'lab':
+        algn_paths = glob.glob(f'{input_path}/lab/*.lab')
+
+    experiment_folder = f'experiments/{experiment}'
+    folder_dict = {'experiment_folder': experiment_folder}
+
+    if param_dict.get("output_feat_768d", True):
+        folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
+
+    if param_dict.get("projection_2d", True):
+        folder_dict.update(
+            {'feat_2d_folder': f'{experiment_folder}/feat_2d',
+              'plots_folder' : f'{experiment_folder}/plots'})
+        
+    print(f'folders to be created : {list(folder_dict.values())}')
+    
+    for fo in list(folder_dict.values()):
+        os.makedirs(fo, exist_ok=True)
+
+    with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
+        json.dump(param_dict, outfile, indent=4)
+
+    return algn_paths, folder_dict 
+
+def make_df_annotated(layer, param_dict):
+    print(f'-------- df annotated')
+
+    input_path = param_dict["input_path"]
+    tp_algn = param_dict["tp_algn"]
+    dataset_tp = param_dict["dataset_tp"]
+
+    feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
+
     df_anotated = u.make_anotated_feat_df(feat_paths, 
                                           algn_paths, 
                                           tp_algn = tp_algn,
-                                          dataset = DATA_SET_TP)
+                                          dataset = dataset_tp)
     
-    df_anotated.to_csv(f'{folder_feat_768d}/feat_768d_layer_{layer}.csv')
+    if param_dict.get("output_feat_768d", True):
+        df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
+
+    return df_anotated
+
+def make_df_projected_annotated_2d(df_anotated, param_dict):
     
-    ### umap
+    exclude_phones = param_dict['exclude_phones_plot']
+    print(f'Excluding phones {exclude_phones} from plot')
+    
     print(f'-------- umap')
     umap2 = u.train_umap(
         df_anotated,
-        exclude_phones = EXCLUDE_PHONES,
+        exclude_phones = exclude_phones,
         n_components=2, 
         n_neighbors=100, 
         min_dist=0.1,
         save_model = False,
         folder = None)
-    
+        
     df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
                                                     umap2,
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_feat_2d}/feat_2d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_dict["feat_2d_folder"]}/feat_2d_layer_{layer}.csv')
 
+    return df_proj_anotated
 
-    ### plots
+def make_plot(df_proj_anotated):
     print(f'-------- plot')
     my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'AP']
     plots.make_tagged_LS_plot(df_proj_anotated,
@@ -93,39 +139,39 @@ for layer in range(1,13):
             alpha = 0.25, 
             s = 0.1,
             show_global=True)
-    plt.savefig(f'{folder_plots}/LS_{DATA_SET}_layer_{layer}')
-
-    ### X y
-    X = df_anotated.drop(columns = ['phone_base', 'song']).values
-    y = df_anotated['phone_base'].values
-    
-    ### silhouettes
-    print(f'-------- Computing silhouette')
-    sil_score = silhouette_score(X, y, metric='cosine')
-    silhouette_dict[layer] = sil_score
-    print(f'--------- sil_score {sil_score}')
+    plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
 
 
-    ### MI
-    print(f'-------- Computing MI')
-    kmeans = KMeans(n_clusters=K_MI, random_state=42)
-    cluster_assignments = kmeans.fit_predict(X)
-    mi = mutual_info_score(y, cluster_assignments)
-    mi_dict[layer] = mi
-    print(f"'-------- Mutual Information (MI-phone): {mi:.4f}")
+#############################################################
+#### Pipeline
+#############################################################
+
+T0 = time.time()
+
+algn_paths, folder_dict = boiler_plate(param_dict)
+metric_dict = {}
+
+for layer in range(1,13):
+
+    t0 = time.time()
+    print(f'-------- Working on layer {layer}')
+
+    df_anotated = make_df_annotated(layer, param_dict) 
+    metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
+
+    if param_dict.get("projection_2d", True):
+        df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
+        make_plot(df_proj_anotated)
+    else:
+        print('Skipping 2d projection and plots')
     
     t1 = time.time()
     dt = t1 - t0
     print(f'------------- Time for layer {layer}: {dt}')
 
-df_sil = pd.DataFrame.from_dict(silhouette_dict, orient='index', columns=['silhouette'])
-df_sil = df_sil.reset_index().rename(columns={'index': 'layer'})
-df_sil.to_csv(f'{output_folder}/silhouette_layers.csv')
-
-df_mi = pd.DataFrame.from_dict(mi_dict, orient='index', columns=['mi'])
-df_mi = df_mi.reset_index().rename(columns={'index': 'layer'})
-df_mi.to_csv(f'{output_folder}/mi_layers.csv')
-
+exp_folder = folder_dict["experiment_folder"]
+df_metric = ph_metrics.make_df_metric(metric_dict)
+df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0

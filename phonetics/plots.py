@@ -115,3 +115,58 @@ def check_dimensions(df):
     else:
         return None
 
+
+def plot_static_trajectory(df_phrase, df_anotated, ax = None):
+
+    #print(make_string_phrase(df_phrase))
+    phones = df_phrase['phone_base'].unique()
+
+    if ax is None:
+        fig = plt.figure(figsize=(10,6)) 
+        ax = fig.add_subplot(111)
+        
+    ax.scatter(df_anotated['x'],
+            df_anotated['y'],
+            alpha=0.05,
+            s = 0.05, 
+            color= 'grey')
+
+    for ph in phones:
+        mask = df_anotated['phone_base'] == ph
+        df_filter = df_anotated[mask]
+        ax.scatter(
+        df_filter['x'],
+        df_filter['y'],
+        alpha=0.1,
+        s = 0.05, 
+        label = ph)
+
+        x_cm, y_cm = df_filter[['x', 'y']].median()
+        ax.annotate(
+        ph,
+        xy=(x_cm, y_cm),
+        xytext=(x_cm, y_cm),  # Offset for the text position
+        arrowprops=dict(arrowstyle="->", color='gray'),
+        fontsize=14,
+        fontweight='bold',
+        color='black'
+        )
+
+        ax.scatter(df_phrase['x'],
+                df_phrase['y'],
+                alpha=0.7,
+                s = 10.0, 
+                color= 'red')
+
+        ax.set_xlim([-4,17])
+        ax.set_ylim([-5,10])
+
+
+def make_string_phrase(df_phrase):
+    s = df_phrase['phone_base']
+    #result = s[s != s.shift()].reset_index(drop=True)
+    string = ''.join(s[s != s.shift()])
+
+    string = string.replace('AP', '  AP  \n').replace('SP', ' --- SP ---')
+
+    return string

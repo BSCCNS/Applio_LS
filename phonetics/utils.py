@@ -102,6 +102,37 @@ def train_umap(
 ### Parsing
 ##############################################################
 
+def find_articulations(df_song, target):
+    """
+    Find indices of all contiguous blocks of `target` in the series,
+    including the element before and after each block (if they exist).
+    
+    Parameters:
+        song (pd.Dataframe): df with song (reset index)
+        target (str): The character to search for.
+        
+    Returns:
+        List[List[int]]: List of index lists for each expanded block.
+    """
+
+    series = df_song['phone_base']
+
+    mask = series == target
+    group = (mask != mask.shift()).cumsum()
+    blocks = mask.groupby(group).apply(lambda x: x.index if x.all() else None).dropna()
+
+    expanded_indices = []
+    for block in blocks:
+        start = max(block[0] - 1, 0) 
+        end = min(block[-1] + 1, len(series) - 1) 
+        expanded_indices.append(list(range(start, end + 1)))
+
+    print(f'Detected {len(blocks)} articulations')
+
+    articulations = [df_song.iloc[idxs] for idxs in expanded_indices]
+
+    return articulations
+
 def make_proj_anotated_feat_df(df_anotated, 
                                umap_model,
                                save_df = False,
