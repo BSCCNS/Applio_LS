@@ -70,7 +70,7 @@ def boiler_plate(param_dict):
     experiment_folder = f'experiments/{experiment}'
     folder_dict = {'experiment_folder': experiment_folder}
 
-    if param_dict.get("output_feat_768d", True):
+    if param_dict.get("output_feat_768d", False):
         folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
 
     if param_dict.get("projection_2d", True):
