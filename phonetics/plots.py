@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.lines as mlines
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 def make_tagged_LS_plot(df,
                 phones = ['a', 'e', 't', 's', 'm', 'n'],
@@ -116,7 +117,11 @@ def check_dimensions(df):
         return None
 
 
-def plot_static_trajectory(df_phrase, df_anotated, ax = None):
+def plot_static_trajectory(df_phrase, 
+                           df_anotated, 
+                           ax = None,
+                           xlim = None,
+                           ylim = None):
 
     #print(make_string_phrase(df_phrase))
     phones = df_phrase['phone_base'].unique()
@@ -157,9 +162,11 @@ def plot_static_trajectory(df_phrase, df_anotated, ax = None):
                 alpha=0.7,
                 s = 10.0, 
                 color= 'red')
-
-        ax.set_xlim([-4,17])
-        ax.set_ylim([-5,10])
+        
+        if xlim:
+            ax.set_xlim(xlim)
+        if ylim:
+            ax.set_ylim(ylim)
 
 
 def make_string_phrase(df_phrase):
@@ -170,3 +177,92 @@ def make_string_phrase(df_phrase):
     string = string.replace('AP', '  AP  \n').replace('SP', ' --- SP ---')
 
     return string
+
+
+def make_phrase_animation(df_phrase, df_anotated, fps = 20, figsize = (10, 6)):
+
+    com_df = df_anotated.groupby('phone_base')[['x', 'y']].median().rename(columns={'x': 'com_x', 'y': 'com_y'})
+    df_phrase_cm = df_phrase.merge(com_df, left_on='phone_base', right_index=True)
+
+    phones = df_phrase['phone_base'].unique()
+
+    # Assuming dfembed_song has 'x' and 'y'
+    x = df_phrase_cm['x'].values
+    y = df_phrase_cm['y'].values
+
+    x_cm = df_phrase_cm['com_x'].values
+    y_cm = df_phrase_cm['com_y'].values
+
+    phone_traj = df_phrase['phone_base'].values
+    num_points = len(x)
+
+    # Parameters
+    trail_length = 20
+    head_size = 30
+    trail_size = 5
+    alpha_trail = 0.3
+
+    # Set up 2D figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Clean up axes
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.grid(False)
+
+    ax.set_xlim([-4,17])
+    ax.set_ylim([-8,12])
+    #ax.tight_layout()
+    plt.tight_layout()
+
+    for ph in phones:
+        mask = df_anotated['phone_base'] == ph
+        df_filter = df_anotated[mask]
+        ax.scatter(
+            df_filter['x'],
+            df_filter['y'],
+            alpha=0.1,
+            s = 0.05, 
+            label = ph)
+
+    # Initialize trail, head and annotations
+    trail_scatter, = ax.plot([], [], 'o', markersize=trail_size, alpha=alpha_trail, color='red')
+    head_scatter, = ax.plot([], [], 'o', markersize=head_size / 5, color='red')
+
+    annotation = ax.annotate(
+        "", 
+        xy=(0, 0), 
+        fontsize=14, 
+        fontweight='bold', 
+        color='black'
+    )
+
+    def update(frame):
+        start = max(0, frame - trail_length)
+        trail_x = x[start:frame]
+        trail_y = y[start:frame]
+
+        trail_scatter.set_data(trail_x, trail_y)
+
+        if frame < len(x):
+            head_scatter.set_data([x[frame]], [y[frame]])
+            annotation.set_text(phone_traj[frame])
+            annotation.set_position((x_cm[frame], y_cm[frame]))
+        else:
+            head_scatter.set_data([], [])
+            #annotation.set_text(phone_traj[frame])
+
+        return trail_scatter, head_scatter
+
+    # Animate
+    #fps = 100
+    interval = 1000/fps
+    ani = FuncAnimation(fig, update, frames=num_points, interval=interval, blit=False)
+
+    ani.save("scatter2d.gif", writer=PillowWriter(fps=fps))
+
+    # # Display the saved GIF
+    # from IPython.display import Image
+    # Image(filename="scatter2d.gif")
