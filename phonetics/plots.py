@@ -179,7 +179,12 @@ def make_string_phrase(df_phrase):
     return string
 
 
-def make_phrase_animation(df_phrase, df_anotated, fps = 20, figsize = (10, 6)):
+def make_phrase_animation(df_phrase, 
+                          df_anotated, 
+                          fps = 20, 
+                          figsize = (10, 6),
+                          xlim = [-4,17],
+                          ylim = [-8,12]):
 
     com_df = df_anotated.groupby('phone_base')[['x', 'y']].median().rename(columns={'x': 'com_x', 'y': 'com_y'})
     df_phrase_cm = df_phrase.merge(com_df, left_on='phone_base', right_index=True)
@@ -212,8 +217,11 @@ def make_phrase_animation(df_phrase, df_anotated, fps = 20, figsize = (10, 6)):
     ax.set_ylabel('')
     ax.grid(False)
 
-    ax.set_xlim([-4,17])
-    ax.set_ylim([-8,12])
+    if xlim:
+        ax.set_xlim(xlim)
+    
+    if ylim:
+        ax.set_ylim(ylim)
     #ax.tight_layout()
     plt.tight_layout()
 
