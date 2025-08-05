@@ -16,7 +16,8 @@ def make_tagged_LS_plot(df,
                 zlim = None, 
                 add_legend = True,
                 label_detail = True,
-                save_fig = False):
+                save_fig = False,
+                ax = None):
     
     '''
     df projected, anotated
@@ -29,11 +30,13 @@ def make_tagged_LS_plot(df,
     
     fig = plt.figure(figsize=figsize)    
     if dim == '3d':
-        ax = fig.add_subplot(111, projection='3d')
+        if ax is None:
+            ax = fig.add_subplot(111, projection='3d')
         coords = ['x', 'y', 'z']
         
     elif dim == '2d':
-        ax = fig.add_subplot(111)  # No projection for 2D
+        if ax is None:
+            ax = fig.add_subplot(111)  # No projection for 2D
         coords = ['x', 'y']
         
     cols = [df[col] for col in coords]

@@ -102,7 +102,7 @@ def train_umap(
 ### Parsing
 ##############################################################
 
-def find_articulations(df_song, target):
+def find_articulations(df_song, target, padding = 1):
     """
     Find indices of all contiguous blocks of `target` in the series,
     including the element before and after each block (if they exist).
@@ -123,8 +123,8 @@ def find_articulations(df_song, target):
 
     expanded_indices = []
     for block in blocks:
-        start = max(block[0] - 1, 0) 
-        end = min(block[-1] + 1, len(series) - 1) 
+        start = max(block[0] - padding, 0) 
+        end = min(block[-1] + padding, len(series) - 1) 
         expanded_indices.append(list(range(start, end + 1)))
 
     print(f'Detected {len(blocks)} articulations')
