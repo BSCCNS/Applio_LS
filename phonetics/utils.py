@@ -133,6 +133,39 @@ def find_articulations(df_song, target, padding = 1):
 
     return articulations
 
+def group_vowels_consonants_ap(df_anotated,
+                               vowels = ['a', 'e', 'i', 'o', 'u', '3', 'w', '0','y'],
+                               AP = ['AP'], 
+                               SP = 'SP'):
+
+    print(f'vowels: {vowels}')
+    print(f'aspirations: {AP}')
+    print(f'Short pause: {SP}')
+    #vowels = ['a', 'e', 'i', 'o', 'u', '3', 'w', '0','y']
+    #AP = ['AP']
+
+    mask = (df_anotated['phone_base'] != SP)
+
+    df_anotated = df_anotated[mask]
+
+    df_consonant = df_anotated[~df_anotated['phone_base'].isin(vowels + AP)].copy()
+    df_vowels = df_anotated[df_anotated['phone_base'].isin(vowels)].copy()
+    df_ap = df_anotated[df_anotated['phone_base'].isin(AP)].copy()
+
+    df_ap['group'] = 'AP'
+    df_vowels['group'] = 'vowel'
+    df_consonant['group'] = 'consonant'
+
+    df_grouped = pd.concat([df_consonant, df_vowels, df_ap])
+
+    ph_group = {
+    'consonants': list(df_consonant['phone_base'].unique()),
+    'vowels': list(df_vowels['phone_base'].unique()),
+    'AP': list(df_ap['phone_base'].unique())
+    }
+
+    return df_grouped, ph_group
+
 def make_proj_anotated_feat_df(df_anotated, 
                                umap_model,
                                save_df = False,
