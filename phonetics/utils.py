@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.preprocessing import normalize
 
 DIM = 768
 DT = 0.020 #seconds
@@ -68,6 +69,8 @@ def train_umap(
     min_dist=0.2,
     n_jobs = 4,
     save_model = False,
+    metric = 'euclidean',
+    normalize_vectors = False,
     folder = ''):
 
     # train umap with dataset without silence
@@ -79,10 +82,15 @@ def train_umap(
 
     X = df_filter.drop(columns=['phone_base', 'song']).values
 
+    if normalize_vectors:
+        X = np.asarray(X, dtype=np.float32, order="C")
+        X = normalize(X, norm="l2", axis=1, copy=False)
+
     print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}')
     reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
+                metric = metric,
                 random_state=42,
                 n_jobs=n_jobs)
 

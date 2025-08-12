@@ -111,6 +111,12 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
     
     exclude_phones = param_dict['exclude_phones_plot']
     print(f'Excluding phones {exclude_phones} from plot')
+
+    metric = param_dict.get('umap_metric', 'euclidean')
+    print(f'UMAP projection using metric {metric}')
+
+    normalize_vectors = param_dict.get('umap_normalize_vectors', False)
+    print(f'UMAP projection normalize vectors {normalize_vectors}')
     
     print(f'-------- umap')
     umap2 = u.train_umap(
@@ -119,6 +125,8 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         n_components=2, 
         n_neighbors=100, 
         min_dist=0.1,
+        metric = metric,
+        normalize_vectors = normalize_vectors,
         save_model = False,
         folder = None)
         
