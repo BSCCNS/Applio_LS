@@ -141,7 +141,7 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
 
 def make_plot(df_proj_anotated):
     print(f'-------- plot')
-    my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'AP']
+    my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'SP']
     plots.make_tagged_LS_plot(df_proj_anotated,
             phones = my_phones,
             alpha = 0.25, 
