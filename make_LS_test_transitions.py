@@ -91,6 +91,7 @@ def make_df_annotated(layer, param_dict):
     dataset_tp = param_dict["dataset_tp"]
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
+    remove_short_phones = param_dict.get("remove_short_phones", False) 
 
     print(f'Making df_annotated -- add_transitions: {add_transitions} -- pad_seconds {pad_seconds}')
 
@@ -101,7 +102,8 @@ def make_df_annotated(layer, param_dict):
                                         tp_algn = tp_algn,
                                         dataset = dataset_tp,
                                         add_transitions = add_transitions,
-                                        pad_seconds = pad_seconds)
+                                        pad_seconds = pad_seconds,
+                                        remove_short_phones = remove_short_phones)
     
     if param_dict.get("output_feat_768d", True):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')

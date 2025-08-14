@@ -213,14 +213,16 @@ def make_anotated_feat_df(feat_paths,
                           tp_algn = 'lab',
                           dataset = 'libri',
                           add_transitions = False,
-                          pad_seconds = 0.0101):
+                          pad_seconds = 0.0101,
+                          remove_short_phones = False):
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
                                                 dataset = dataset, 
                                                 add_transitions = add_transitions,
-                                                pad_seconds = pad_seconds) 
+                                                pad_seconds = pad_seconds,
+                                                remove_short_phones = remove_short_phones) 
                                                 for f in feat_paths], axis=0)
     return df.reset_index(drop=True)
 
@@ -230,7 +232,8 @@ def make_single_anotated_feat_df(feat_file,
                                  tp_algn = 'lab',
                                  dataset = 'libri',
                                  add_transitions = False,
-                                 pad_seconds = 0.0101):
+                                 pad_seconds = 0.0101,
+                                 remove_short_phones = False):
     df_feat = df_features_from_csv_file(feat_file)
     
     song_name = get_song_name(feat_file)
@@ -268,6 +271,10 @@ def make_single_anotated_feat_df(feat_file,
     df_feat_anotated = add_phone_to_feat_df(df_feat, df_algn)
     df_feat_anotated['song'] = song_name
 
+    if remove_short_phones:
+        mask = df_feat_anotated['duration'] > DT
+        df_feat_anotated = df_feat_anotated[mask]
+
     return df_feat_anotated
 
 def get_song_name(feat_file):
@@ -286,10 +293,12 @@ def add_phone_to_feat_df(df_feat, df_algn):
     # Initialize the column 
     df_feat = df_feat.copy()
     df_feat['phone_base'] = None
+    df_feat['duration'] = None
 
     # Assign phone_base based on start_idx and end_idx
     for _, row in df_algn.iterrows():
         df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'phone_base'] = row['phone_base']
+        df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'duration'] = row['duration']
 
     return df_feat
 
@@ -315,6 +324,7 @@ def df_alignments_from_lab_file(lab_file,
 
     df = df.rename(columns={'label': 'phone_base'})
     df[['start', 'end']] = df[['start', 'end']]/1e7
+    df['duration'] = df['end'] - df['start']
 
     if add_transitions:
         df = insert_transitions(df, 
@@ -322,8 +332,6 @@ def df_alignments_from_lab_file(lab_file,
                                 transition_label="transition")
         
         df = df[df['duration'] < DT]
-
-    df['duration'] = df['end'] - df['start'] 
 
     df["start_idx"] =  (df["start"]/dt).apply(np.floor).astype(int)
     df["end_idx"] =  (df["end"]/dt).apply(np.floor).astype(int)
