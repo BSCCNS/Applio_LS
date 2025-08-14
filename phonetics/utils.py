@@ -212,13 +212,15 @@ def make_anotated_feat_df(feat_paths,
                           from_converted = False,
                           tp_algn = 'lab',
                           dataset = 'libri',
-                          add_transitions = False):
+                          add_transitions = False,
+                          pad_seconds = 0.0101):
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
                                                 dataset = dataset, 
-                                                add_transitions = add_transitions) 
+                                                add_transitions = add_transitions,
+                                                pad_seconds = pad_seconds) 
                                                 for f in feat_paths], axis=0)
     return df.reset_index(drop=True)
 
@@ -227,7 +229,8 @@ def make_single_anotated_feat_df(feat_file,
                                  from_converted = False,
                                  tp_algn = 'lab',
                                  dataset = 'libri',
-                                 add_transitions = False):
+                                 add_transitions = False,
+                                 pad_seconds = 0.0101):
     df_feat = df_features_from_csv_file(feat_file)
     
     song_name = get_song_name(feat_file)
@@ -243,7 +246,10 @@ def make_single_anotated_feat_df(feat_file,
     lab_file = files_match[0]
 
     if tp_algn == 'lab':
-        df_algn = df_alignments_from_lab_file(lab_file, add_transitions=add_transitions)
+        df_algn = df_alignments_from_lab_file(lab_file, 
+                                              add_transitions=add_transitions,
+                                              pad_seconds=pad_seconds)
+                                        
     elif tp_algn == 'text_grid':
         if dataset == 'libri':
             df_algn = make_def_single_file(lab_file, phone_key_word='phones')
@@ -292,7 +298,8 @@ def add_phone_to_feat_df(df_feat, df_algn):
 ###########################################################################
 
 def df_alignments_from_lab_file(lab_file, 
-                                add_transitions = False):
+                                add_transitions = False,
+                                pad_seconds=0.010):
     '''
     This uses the conventions of the lab files Maria gave us
     '''
@@ -311,7 +318,7 @@ def df_alignments_from_lab_file(lab_file,
 
     if add_transitions:
         df = insert_transitions(df, 
-                                pad_seconds=0.010, 
+                                pad_seconds=pad_seconds, 
                                 transition_label="transition")
 
     df['duration'] = df['end'] - df['start'] 

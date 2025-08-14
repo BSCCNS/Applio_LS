@@ -41,11 +41,6 @@ def read_param_dict(parser):
 param_dict = read_param_dict(parser)
 
 
-#DATA_SET = param_dict["dataset"] #'GTSinger_ES'
-#DATA_SET_TP = param_dict["dataset_tp"] #'gt'
-#EXCLUDE_PHONES = param_dict["exclude_phones"] #None #['<AP>']
-#tp_algn = param_dict["text_grid"]  #'text_grid'
-#K_MI = param_dict["K_MI"] # 50
 
 # DATA_SET = 'songs'
 # DATA_SET_TP = None 
@@ -96,6 +91,8 @@ def make_df_annotated(layer, param_dict):
     dataset_tp = param_dict["dataset_tp"]
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
+
+    print(f'Making df_annotated -- add_transitions: {add_transitions} -- pad_seconds {pad_seconds}')
 
     feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
 
@@ -159,31 +156,16 @@ def make_plot(df_proj_anotated):
 #############################################################
 
 T0 = time.time()
-
 algn_paths, folder_dict = boiler_plate(param_dict)
-metric_dict = {}
+layer = 12
 
-for layer in range(1,13):
+df_anotated = make_df_annotated(layer, param_dict) 
 
-    t0 = time.time()
-    print(f'-------- Working on layer {layer}')
-
-    df_anotated = make_df_annotated(layer, param_dict) 
-    metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
-
-    if param_dict.get("projection_2d", True):
-        df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
-        make_plot(df_proj_anotated)
-    else:
-        print('Skipping 2d projection and plots')
-    
-    t1 = time.time()
-    dt = t1 - t0
-    print(f'------------- Time for layer {layer}: {dt}')
-
-exp_folder = folder_dict["experiment_folder"]
-df_metric = ph_metrics.make_df_metric(metric_dict)
-df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
+if param_dict.get("projection_2d", True):
+    df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
+    make_plot(df_proj_anotated)
+else:
+    print('Skipping 2d projection and plots')
 
 T1 = time.time()    
 DT = T1 - T0
