@@ -260,6 +260,8 @@ def make_single_anotated_feat_df(feat_file,
             df_algn = make_def_single_file(lab_file, phone_key_word='phone')
 
 
+    print('df_algn')
+    print(df_algn)
     t_last = df_algn['end'].iloc[-1]
     check = t_last/DT - len(df_feat)
 
