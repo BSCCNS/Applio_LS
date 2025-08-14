@@ -333,7 +333,7 @@ def df_alignments_from_lab_file(lab_file,
                                 pad_seconds=pad_seconds, 
                                 transition_label="transition")
         
-        df = df[df['duration'] < DT]
+        df = df[df['duration'] > DT]
 
     df["start_idx"] =  (df["start"]/dt).apply(np.floor).astype(int)
     df["end_idx"] =  (df["end"]/dt).apply(np.floor).astype(int)
