@@ -320,6 +320,8 @@ def df_alignments_from_lab_file(lab_file,
         df = insert_transitions(df, 
                                 pad_seconds=pad_seconds, 
                                 transition_label="transition")
+        
+        df = df[df['duration'] < DT]
 
     df['duration'] = df['end'] - df['start'] 
 
