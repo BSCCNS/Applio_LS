@@ -14,6 +14,7 @@ def make_tagged_LS_plot(df,
                 xlim = None,
                 ylim = None,
                 zlim = None, 
+                align_head = False,
                 add_legend = True,
                 label_detail = True,
                 save_fig = False,
@@ -38,6 +39,9 @@ def make_tagged_LS_plot(df,
         if ax is None:
             ax = fig.add_subplot(111)  # No projection for 2D
         coords = ['x', 'y']
+
+        if align_head:
+            df = align_dancer_head(df, ap_phone = 'AP')
         
     cols = [df[col] for col in coords]
     if show_global:
@@ -87,17 +91,6 @@ def make_tagged_LS_plot(df,
     if add_legend:
         ax.legend(handles=legs)
 
-
-#     legend = ax.legend(
-#     title='Age Group',
-#     fontsize=12,             # Legend labels font size
-#     title_fontsize=14,       # Legend title font size
-#     loc='upper center',
-#     bbox_to_anchor=(0.5, -0.15),
-#     ncol=len(pivot_df.columns),  # One column per group = single line
-#     frameon=False             # Optional: removes legend box
-# )
-
     if xlim is not None:
         ax.set_xlim(xlim)
     if ylim is not None:
@@ -109,6 +102,48 @@ def make_tagged_LS_plot(df,
         plt.axis('off')
         #fig.savefig('LS.svg', format='svg', dpi=1200)
         fig.savefig('LS.png', dpi=1200)
+
+def align_dancer_head(df, ap_phone = 'AP'):
+
+    df = df.copy()
+
+    df['x'] = df['x'] - df['x'].mean()
+    df['y'] = df['y'] - df['y'].mean()
+
+    df_head = df[df['phone_base'] == ap_phone]
+    Ixx = (df_head['y']**2).sum()
+    Iyy = (df_head['x']**2).sum()
+    Ixy = (-df_head['x']*df_head['y']).sum()
+
+    Itensor = np.array([[Ixx, Ixy], [Ixy, Iyy]])
+
+    evals, evecs = np.linalg.eigh(Itensor)  
+
+    phi = np.arctan2(evecs[0][1], evecs[0][0])
+    c_th, s_th = np.cos(phi), np.sin(phi)
+
+    M_rot = np.array([[c_th, s_th], 
+                    [-s_th, c_th]])
+
+    Xc = df[['x','y']].to_numpy(dtype=float)
+    Xr = (M_rot @ Xc.T).T
+
+    df[['x', 'y']] = Xr
+
+    return df
+
+
+#     legend = ax.legend(
+#     title='Age Group',
+#     fontsize=12,             # Legend labels font size
+#     title_fontsize=14,       # Legend title font size
+#     loc='upper center',
+#     bbox_to_anchor=(0.5, -0.15),
+#     ncol=len(pivot_df.columns),  # One column per group = single line
+#     frameon=False             # Optional: removes legend box
+# )
+
+
 
 def check_dimensions(df):
     cols = set(df.columns)
