@@ -211,12 +211,14 @@ def make_anotated_feat_df(feat_paths,
                           lab_paths, 
                           from_converted = False,
                           tp_algn = 'lab',
-                          dataset = 'libri'):
+                          dataset = 'libri',
+                          add_transitions = False):
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
-                                                dataset = dataset) 
+                                                dataset = dataset, 
+                                                add_transitions = add_transitions) 
                                                 for f in feat_paths], axis=0)
     return df.reset_index(drop=True)
 
@@ -224,7 +226,8 @@ def make_single_anotated_feat_df(feat_file,
                                  lab_paths, 
                                  from_converted = False,
                                  tp_algn = 'lab',
-                                 dataset = 'libri'):
+                                 dataset = 'libri',
+                                 add_transitions = False):
     df_feat = df_features_from_csv_file(feat_file)
     
     song_name = get_song_name(feat_file)
@@ -240,7 +243,7 @@ def make_single_anotated_feat_df(feat_file,
     lab_file = files_match[0]
 
     if tp_algn == 'lab':
-        df_algn = df_alignments_from_lab_file(lab_file)
+        df_algn = df_alignments_from_lab_file(lab_file, add_transitions=add_transitions)
     elif tp_algn == 'text_grid':
         if dataset == 'libri':
             df_algn = make_def_single_file(lab_file, phone_key_word='phones')
@@ -288,7 +291,8 @@ def add_phone_to_feat_df(df_feat, df_algn):
 ###### songs
 ###########################################################################
 
-def df_alignments_from_lab_file(lab_file):
+def df_alignments_from_lab_file(lab_file, 
+                                add_transitions = False):
     '''
     This uses the conventions of the lab files Maria gave us
     '''
@@ -302,15 +306,59 @@ def df_alignments_from_lab_file(lab_file):
 
     dt = DT #in seconds
 
+    df = df.rename(columns={'label': 'phone_base'})
     df[['start', 'end']] = df[['start', 'end']]/1e7
+
+    if add_transitions:
+        df = insert_transitions(df, 
+                                pad_seconds=0.010, 
+                                transition_label="transition")
+
     df['duration'] = df['end'] - df['start'] 
 
     df["start_idx"] =  (df["start"]/dt).apply(np.floor).astype(int)
     df["end_idx"] =  (df["end"]/dt).apply(np.floor).astype(int)
 
-    df = df.rename(columns={'label': 'phone_base'})
-
     return df
+
+def insert_transitions(df, pad_seconds=0.010, transition_label="transition"):
+    import pandas as pd
+    if df.empty:
+        return df.copy()
+    df_sorted = df.sort_values(["start", "end"]).reset_index(drop=True)
+    out_rows = []
+    current = df_sorted.iloc[0].to_dict()
+
+    for i in range(len(df_sorted) - 1):
+        left = current
+        right = df_sorted.iloc[i + 1].to_dict()
+
+        left_len = max(0.0, float(left["end"]) - float(left["start"]))
+        right_len = max(0.0, float(right["end"]) - float(right["start"]))
+        shave_left = min(pad_seconds, left_len)
+        shave_right = min(pad_seconds, right_len)
+
+        t_start = float(left["end"]) - shave_left
+        t_end = float(right["start"]) + shave_right
+
+        if t_end < t_start:
+            mid = (float(left["end"]) + float(right["start"])) / 2.0
+            t_start = mid
+            t_end = mid
+            shave_left = max(0.0, min(float(left["end"]) - t_start, left_len))
+            shave_right = max(0.0, min(t_end - float(right["start"]), right_len))
+
+        trimmed_left = dict(left)
+        trimmed_left["end"] = max(trimmed_left["start"], t_start)
+        out_rows.append(trimmed_left)
+
+        out_rows.append({"start": t_start, "end": t_end, "phone_base": transition_label})
+
+        right["start"] = min(float(right["end"]), t_end)
+        current = right
+
+    out_rows.append(current)
+    return pd.DataFrame(out_rows).reset_index(drop=True)
 
 ###########################################################################
 ###### libri speech
