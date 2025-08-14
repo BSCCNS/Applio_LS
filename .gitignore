@@ -15,6 +15,7 @@
 *.png
 *.safetensors
 
+experiments/
 assets/audios
 assets/datasets
 assets/features

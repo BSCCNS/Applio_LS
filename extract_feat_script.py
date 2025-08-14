@@ -22,7 +22,9 @@ ext = args[2]
 
 os.makedirs(OUTPUT_FEAT_PATH, exist_ok=True)
 
-N_LAYER = 9
+EXTRACT_INNER_LAYER = False
+N_LAYER = None
+
 t0 = time.time()
 
 infer_pipeline = VoiceConverter(
@@ -30,7 +32,7 @@ infer_pipeline = VoiceConverter(
                 use_window = False,
                 use_hi_filter = False,
                 output_feat_path= f'{OUTPUT_FEAT_PATH}',
-                extract_inner_layers = True,
+                extract_inner_layers = EXTRACT_INNER_LAYER,
                 n_layer = N_LAYER
                 ) 
 
