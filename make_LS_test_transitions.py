@@ -128,6 +128,7 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         n_components=2, 
         n_neighbors=100, 
         min_dist=0.1,
+        n_jobs = 20,
         metric = metric,
         normalize_vectors = normalize_vectors,
         save_model = False,

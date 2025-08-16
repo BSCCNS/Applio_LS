@@ -86,7 +86,7 @@ def train_umap(
         X = np.asarray(X, dtype=np.float32, order="C")
         X = normalize(X, norm="l2", axis=1, copy=False)
 
-    print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}')
+    print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}, n_jobs : {n_jobs}')
     reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
@@ -259,9 +259,6 @@ def make_single_anotated_feat_df(feat_file,
         elif dataset == 'gt':
             df_algn = make_def_single_file(lab_file, phone_key_word='phone')
 
-
-    print(f'df_algn for song {song_name}')
-    print(df_algn)
     t_last = df_algn['end'].iloc[-1]
     check = t_last/DT - len(df_feat)
 
@@ -326,14 +323,14 @@ def df_alignments_from_lab_file(lab_file,
 
     df = df.rename(columns={'label': 'phone_base'})
     df[['start', 'end']] = df[['start', 'end']]/1e7
-    df['duration'] = df['end'] - df['start']
-
+    
     if add_transitions:
         df = insert_transitions(df, 
                                 pad_seconds=pad_seconds, 
                                 transition_label="transition")
         
-        df = df[df['duration'] > DT]
+    df['duration'] = df['end'] - df['start']
+        #df = df[df['duration'] > DT]
 
     df["start_idx"] =  (df["start"]/dt).apply(np.floor).astype(int)
     df["end_idx"] =  (df["end"]/dt).apply(np.floor).astype(int)
