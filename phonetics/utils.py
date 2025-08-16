@@ -196,7 +196,7 @@ def make_proj_anotated_feat_df(df_anotated,
         cols = ['x', 'y', 'z']
 
     df_proj = pd.DataFrame(data = X_projected, columns=cols)
-    df_proj[['phone_base', 'song']] = df_anotated[['phone_base', 'song']]
+    df_proj[['phone_base', 'duration', 'song']] = df_anotated[['phone_base', 'duration', 'song']]
 
     if save_df:
         dist = str(min_dist).replace('.', 'p')
