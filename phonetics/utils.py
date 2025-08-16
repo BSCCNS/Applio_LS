@@ -1,6 +1,7 @@
 import pandas as pd
 import glob
 import os
+import time
 import numpy as np
 from pathlib import Path
 
@@ -73,6 +74,8 @@ def train_umap(
     normalize_vectors = False,
     folder = ''):
 
+    t0 = time.time()
+
     # train umap with dataset without silence
     if exclude_phones is not None:
         mask = ~df_anotated['phone_base'].isin(exclude_phones)
@@ -103,6 +106,11 @@ def train_umap(
 
         os.makedirs(folder, exist_ok=True)
         joblib.dump(reducer, file)
+
+    t1 = time.time()
+    dt = t1 - t0 
+
+    print(f'Finished umap traning. Training time: {dt}')
 
     return reducer
 
@@ -180,6 +188,8 @@ def make_proj_anotated_feat_df(df_anotated,
                                folder = '',
                                suffix = 'all_songs_'):
     
+    t0 = time.time()
+    
     print('Applying dimensional reduction')
     X = df_anotated.drop(columns=['phone_base', 'song']).values
     X_projected = umap_model.transform(X)
@@ -203,6 +213,9 @@ def make_proj_anotated_feat_df(df_anotated,
         file = f'{folder}/df_proj_anotated_{suffix}umap_n{n_neighbors}_dist{dist}_{dim}D.csv'
         os.makedirs(folder, exist_ok=True)
         df_proj.to_csv(file)
+
+    t1 = time.time()
+    print(f'Finished computing projection. Transform time :{t1-t0}')
 
     return df_proj
 
