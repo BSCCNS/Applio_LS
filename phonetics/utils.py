@@ -228,6 +228,8 @@ def make_anotated_feat_df(feat_paths,
                           add_transitions = False,
                           pad_seconds = 0.0101,
                           remove_short_phones = False):
+    
+    t0 = time.time()
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
@@ -237,6 +239,10 @@ def make_anotated_feat_df(feat_paths,
                                                 pad_seconds = pad_seconds,
                                                 remove_short_phones = remove_short_phones) 
                                                 for f in feat_paths], axis=0)
+    
+    t1 = time.time()
+    print(f'-------- Finished making make_anotated_feat_df, time {t1-t0}')
+
     return df.reset_index(drop=True)
 
 def make_single_anotated_feat_df(feat_file, 
