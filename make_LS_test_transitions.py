@@ -84,6 +84,7 @@ def boiler_plate(param_dict):
     return algn_paths, folder_dict 
 
 def make_df_annotated(layer, param_dict):
+    t0 = time.time()
     print(f'-------- df annotated')
 
     input_path = param_dict["input_path"]
@@ -107,6 +108,9 @@ def make_df_annotated(layer, param_dict):
     
     if param_dict.get("output_feat_768d", True):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
+
+    t1 = time.time()
+    print(f'-------- Finish making df_annotated, time : {t1}')
 
     return df_anotated
 
