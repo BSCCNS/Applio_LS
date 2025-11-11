@@ -1,5 +1,5 @@
 import pandas as pd
-
+import logging
 from sklearn.metrics import silhouette_score, silhouette_samples
 
 from sklearn.cluster import KMeans
@@ -7,15 +7,15 @@ from sklearn.metrics import mutual_info_score
 
 
 def compute_silhouette(df_anotated):
-    print(f'-------- Computing silhouette')
+    logging.info(f'-------- Computing silhouette')
 
     X, y = extract_Xy(df_anotated)
     sil_score = silhouette_score(X, y, metric='cosine')
-    print(f'--------- sil_score {sil_score}')
+    logging.info(f'--------- sil_score {sil_score}')
     return sil_score 
 
 def compute_MI(df_anotated, n_clusters = 50):
-    print(f'-------- Computing MI')
+    logging.info(f'-------- Computing MI')
 
     X, y = extract_Xy(df_anotated)
 
@@ -26,7 +26,7 @@ def compute_MI(df_anotated, n_clusters = 50):
 
     mi = mutual_info_score(y, cluster_assignments)
 
-    print(f"-------- Mutual Information (MI-phone): {mi:.4f}")
+    logging.info(f"-------- Mutual Information (MI-phone): {mi:.4f}")
     return mi
 
 def compute_metric_for_layer(df_anotated, param_dict):
@@ -34,7 +34,7 @@ def compute_metric_for_layer(df_anotated, param_dict):
     K_MI = param_dict["K_MI"]
     exclude_phones = param_dict['exclude_phones_metric']
 
-    print(f'Excluding phones {exclude_phones} from metric computations')
+    logging.info(f'Excluding phones {exclude_phones} from metric computations')
     
     if exclude_phones is None:
         df = df_anotated

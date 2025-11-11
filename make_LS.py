@@ -2,6 +2,7 @@ import glob
 import joblib
 import os 
 import json
+import logging
 
 import time
 
@@ -52,6 +53,18 @@ param_dict = read_param_dict(parser)
 # EXCLUDE_PHONES =  None 
 # tp_algn = 'lab' 
 
+def setup_logs(logs_path):
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(logs_path),   # Logs to a file
+            logging.StreamHandler()           # Prints to console
+        ]
+    )
+    logging.info(f'------------- logs output to {logs_path}')
 
 #############################################################
 
@@ -78,7 +91,7 @@ def boiler_plate(param_dict):
             {'feat_2d_folder': f'{experiment_folder}/feat_2d',
               'plots_folder' : f'{experiment_folder}/plots'})
         
-    print(f'folders to be created : {list(folder_dict.values())}')
+    print(f'Folders to be created : {list(folder_dict.values())}')
     
     for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
@@ -86,10 +99,13 @@ def boiler_plate(param_dict):
     with open(f"{experiment_folder}/metadata.json", "w") as outfile: 
         json.dump(param_dict, outfile, indent=2)
 
+    logs_path = f'{experiment_folder}/output.log'
+    setup_logs(logs_path)
+
     return algn_paths, folder_dict 
 
 def make_df_annotated(layer, param_dict):
-    print(f'-------- df annotated')
+    logging.info(f'-------- df annotated')
 
     input_path = param_dict["input_path"]
     tp_algn = param_dict["tp_algn"]
@@ -114,15 +130,15 @@ def make_df_annotated(layer, param_dict):
 def make_df_projected_annotated_2d(df_anotated, param_dict):
     
     exclude_phones = param_dict['exclude_phones_plot']
-    print(f'Excluding phones {exclude_phones} from plot')
+    logging.info(f'Excluding phones {exclude_phones} from plot')
 
     metric = param_dict.get('umap_metric', 'euclidean')
-    print(f'UMAP projection using metric {metric}')
+    logging.info(f'UMAP projection using metric {metric}')
 
     normalize_vectors = param_dict.get('umap_normalize_vectors', False)
-    print(f'UMAP projection normalize vectors {normalize_vectors}')
+    logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
     
-    print(f'-------- umap')
+    logging.info(f'-------- umap')
     umap2 = u.train_umap(
         df_anotated,
         exclude_phones = exclude_phones,
@@ -144,7 +160,7 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
     return df_proj_anotated
 
 def make_plot(df_proj_anotated):
-    print(f'-------- plot')
+    logging.info(f'-------- plot')
     my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'SP']
     plots.make_tagged_LS_plot(df_proj_anotated,
             phones = my_phones,
@@ -166,7 +182,7 @@ metric_dict = {}
 for layer in range(1,13):
 
     t0 = time.time()
-    print(f'-------- Working on layer {layer}')
+    logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
     metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
@@ -175,11 +191,11 @@ for layer in range(1,13):
         df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
         make_plot(df_proj_anotated)
     else:
-        print('Skipping 2d projection and plots')
+        logging.info('Skipping 2d projection and plots')
     
     t1 = time.time()
     dt = t1 - t0
-    print(f'------------- Time for layer {layer}: {dt}')
+    logging.info(f'------------- Time for layer {layer}: {dt}')
 
 exp_folder = folder_dict["experiment_folder"]
 df_metric = ph_metrics.make_df_metric(metric_dict)
@@ -188,4 +204,4 @@ df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 T1 = time.time()    
 DT = T1 - T0
 
-print(f'------------- Total Time: {DT}')
+logging.info(f'------------- Total Time: {DT}')
