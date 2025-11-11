@@ -1,6 +1,7 @@
 import pandas as pd
 import glob
 import os
+import time
 import numpy as np
 from pathlib import Path
 
@@ -73,6 +74,8 @@ def train_umap(
     normalize_vectors = False,
     folder = ''):
 
+    t0 = time.time()
+
     # train umap with dataset without silence
     if exclude_phones is not None:
         mask = ~df_anotated['phone_base'].isin(exclude_phones)
@@ -86,7 +89,7 @@ def train_umap(
         X = np.asarray(X, dtype=np.float32, order="C")
         X = normalize(X, norm="l2", axis=1, copy=False)
 
-    print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}')
+    print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}, n_jobs : {n_jobs}')
     reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
@@ -103,6 +106,11 @@ def train_umap(
 
         os.makedirs(folder, exist_ok=True)
         joblib.dump(reducer, file)
+
+    t1 = time.time()
+    dt = t1 - t0 
+
+    print(f'Finished umap traning. Training time: {dt}')
 
     return reducer
 
@@ -180,6 +188,8 @@ def make_proj_anotated_feat_df(df_anotated,
                                folder = '',
                                suffix = 'all_songs_'):
     
+    t0 = time.time()
+    
     print('Applying dimensional reduction')
     X = df_anotated.drop(columns=['phone_base', 'song']).values
     X_projected = umap_model.transform(X)
@@ -196,13 +206,16 @@ def make_proj_anotated_feat_df(df_anotated,
         cols = ['x', 'y', 'z']
 
     df_proj = pd.DataFrame(data = X_projected, columns=cols)
-    df_proj[['phone_base', 'song']] = df_anotated[['phone_base', 'song']]
+    df_proj[['phone_base', 'duration', 'song']] = df_anotated[['phone_base', 'duration', 'song']]
 
     if save_df:
         dist = str(min_dist).replace('.', 'p')
         file = f'{folder}/df_proj_anotated_{suffix}umap_n{n_neighbors}_dist{dist}_{dim}D.csv'
         os.makedirs(folder, exist_ok=True)
         df_proj.to_csv(file)
+
+    t1 = time.time()
+    print(f'Finished computing projection. Transform time :{t1-t0}')
 
     return df_proj
 
@@ -211,20 +224,35 @@ def make_anotated_feat_df(feat_paths,
                           lab_paths, 
                           from_converted = False,
                           tp_algn = 'lab',
-                          dataset = 'libri'):
+                          dataset = 'libri',
+                          add_transitions = False,
+                          pad_seconds = 0.0101,
+                          remove_short_phones = False):
+    
+    t0 = time.time()
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
-                                                dataset = dataset) 
+                                                dataset = dataset, 
+                                                add_transitions = add_transitions,
+                                                pad_seconds = pad_seconds,
+                                                remove_short_phones = remove_short_phones) 
                                                 for f in feat_paths], axis=0)
+    
+    t1 = time.time()
+    print(f'-------- Finished making make_anotated_feat_df, time {t1-t0}')
+
     return df.reset_index(drop=True)
 
 def make_single_anotated_feat_df(feat_file, 
                                  lab_paths, 
                                  from_converted = False,
                                  tp_algn = 'lab',
-                                 dataset = 'libri'):
+                                 dataset = 'libri',
+                                 add_transitions = False,
+                                 pad_seconds = 0.0101,
+                                 remove_short_phones = False):
     df_feat = df_features_from_csv_file(feat_file)
     
     song_name = get_song_name(feat_file)
@@ -240,13 +268,15 @@ def make_single_anotated_feat_df(feat_file,
     lab_file = files_match[0]
 
     if tp_algn == 'lab':
-        df_algn = df_alignments_from_lab_file(lab_file)
+        df_algn = df_alignments_from_lab_file(lab_file, 
+                                              add_transitions=add_transitions,
+                                              pad_seconds=pad_seconds)
+                                        
     elif tp_algn == 'text_grid':
         if dataset == 'libri':
             df_algn = make_def_single_file(lab_file, phone_key_word='phones')
         elif dataset == 'gt':
             df_algn = make_def_single_file(lab_file, phone_key_word='phone')
-
 
     t_last = df_algn['end'].iloc[-1]
     check = t_last/DT - len(df_feat)
@@ -258,6 +288,10 @@ def make_single_anotated_feat_df(feat_file,
 
     df_feat_anotated = add_phone_to_feat_df(df_feat, df_algn)
     df_feat_anotated['song'] = song_name
+
+    if remove_short_phones:
+        mask = df_feat_anotated['duration'] > DT
+        df_feat_anotated = df_feat_anotated[mask]
 
     return df_feat_anotated
 
@@ -277,10 +311,12 @@ def add_phone_to_feat_df(df_feat, df_algn):
     # Initialize the column 
     df_feat = df_feat.copy()
     df_feat['phone_base'] = None
+    df_feat['duration'] = None
 
     # Assign phone_base based on start_idx and end_idx
     for _, row in df_algn.iterrows():
         df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'phone_base'] = row['phone_base']
+        df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'duration'] = row['duration']
 
     return df_feat
 
@@ -288,7 +324,9 @@ def add_phone_to_feat_df(df_feat, df_algn):
 ###### songs
 ###########################################################################
 
-def df_alignments_from_lab_file(lab_file):
+def df_alignments_from_lab_file(lab_file, 
+                                add_transitions = False,
+                                pad_seconds=0.010):
     '''
     This uses the conventions of the lab files Maria gave us
     '''
@@ -302,15 +340,60 @@ def df_alignments_from_lab_file(lab_file):
 
     dt = DT #in seconds
 
+    df = df.rename(columns={'label': 'phone_base'})
     df[['start', 'end']] = df[['start', 'end']]/1e7
-    df['duration'] = df['end'] - df['start'] 
+    
+    if add_transitions:
+        df = insert_transitions(df, 
+                                pad_seconds=pad_seconds, 
+                                transition_label="transition")
+        
+    df['duration'] = df['end'] - df['start']
+        #df = df[df['duration'] > DT]
 
     df["start_idx"] =  (df["start"]/dt).apply(np.floor).astype(int)
     df["end_idx"] =  (df["end"]/dt).apply(np.floor).astype(int)
 
-    df = df.rename(columns={'label': 'phone_base'})
-
     return df
+
+def insert_transitions(df, pad_seconds=0.010, transition_label="transition"):
+    import pandas as pd
+    if df.empty:
+        return df.copy()
+    df_sorted = df.sort_values(["start", "end"]).reset_index(drop=True)
+    out_rows = []
+    current = df_sorted.iloc[0].to_dict()
+
+    for i in range(len(df_sorted) - 1):
+        left = current
+        right = df_sorted.iloc[i + 1].to_dict()
+
+        left_len = max(0.0, float(left["end"]) - float(left["start"]))
+        right_len = max(0.0, float(right["end"]) - float(right["start"]))
+        shave_left = min(pad_seconds, left_len)
+        shave_right = min(pad_seconds, right_len)
+
+        t_start = float(left["end"]) - shave_left
+        t_end = float(right["start"]) + shave_right
+
+        if t_end < t_start:
+            mid = (float(left["end"]) + float(right["start"])) / 2.0
+            t_start = mid
+            t_end = mid
+            shave_left = max(0.0, min(float(left["end"]) - t_start, left_len))
+            shave_right = max(0.0, min(t_end - float(right["start"]), right_len))
+
+        trimmed_left = dict(left)
+        trimmed_left["end"] = max(trimmed_left["start"], t_start)
+        out_rows.append(trimmed_left)
+
+        out_rows.append({"start": t_start, "end": t_end, "phone_base": transition_label})
+
+        right["start"] = min(float(right["end"]), t_end)
+        current = right
+
+    out_rows.append(current)
+    return pd.DataFrame(out_rows).reset_index(drop=True)
 
 ###########################################################################
 ###### libri speech

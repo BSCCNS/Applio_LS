@@ -251,6 +251,10 @@ def make_phrase_animation(df_phrase,
     # Clean up axes
     ax.set_xticks([])
     ax.set_yticks([])
+    ax.spines["top"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["right"].set_visible(False)
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.grid(False)
