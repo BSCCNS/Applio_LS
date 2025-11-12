@@ -91,8 +91,6 @@ def boiler_plate(param_dict):
             {'feat_2d_folder': f'{experiment_folder}/feat_2d',
               'plots_folder' : f'{experiment_folder}/plots'})
         
-    print(f'Folders to be created : {list(folder_dict.values())}')
-    
     for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
 
@@ -101,6 +99,8 @@ def boiler_plate(param_dict):
 
     logs_path = f'{experiment_folder}/output.log'
     setup_logs(logs_path)
+
+    logging.info(f'Folders created : {list(folder_dict.values())}')
 
     return algn_paths, folder_dict 
 
