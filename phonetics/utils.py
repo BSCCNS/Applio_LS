@@ -229,6 +229,9 @@ def make_anotated_feat_df(feat_paths,
                           pad_seconds = 0.0101,
                           remove_short_phones = False):
     
+    print('lab_paths')
+    print(lab_paths)
+
     t0 = time.time()
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
