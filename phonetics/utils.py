@@ -230,6 +230,9 @@ def make_anotated_feat_df(feat_paths,
                           remove_short_phones = False):
     
     t0 = time.time()
+    print('here!!')
+
+
     df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
@@ -254,8 +257,6 @@ def make_single_anotated_feat_df(feat_file,
                                  pad_seconds = 0.0101,
                                  remove_short_phones = False):
     
-    print('feat_file')
-    print(feat_file)
 
     df_feat = df_features_from_csv_file(feat_file)
 
