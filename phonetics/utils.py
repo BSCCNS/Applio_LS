@@ -253,11 +253,12 @@ def make_single_anotated_feat_df(feat_file,
                                  add_transitions = False,
                                  pad_seconds = 0.0101,
                                  remove_short_phones = False):
+    
+    print('feat_file')
+    print(feat_file)
+
     df_feat = df_features_from_csv_file(feat_file)
 
-    print('df_feat')
-    print(df_feat)
-    
     song_name = get_song_name(feat_file)
 
     if from_converted:
