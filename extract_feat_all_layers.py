@@ -47,4 +47,4 @@ for n_layer in n_layers:
 T1 = time.time()
 
 DT = T1 - T0
-print(f'------ Total Time {n_layer}: {DT}')
+print(f'------ Total Time: {DT}')
