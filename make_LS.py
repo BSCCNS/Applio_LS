@@ -79,6 +79,8 @@ def boiler_plate(param_dict):
         algn_paths = glob.glob(f'{input_path}/TextGrid/*.TextGrid')
     elif tp_algn == 'lab':
         algn_paths = glob.glob(f'{input_path}/lab/*.lab')
+    elif tp_algn is None:
+        algn_paths = None
 
     experiment_folder = f'experiments/{experiment}'
     folder_dict = {'experiment_folder': experiment_folder}
