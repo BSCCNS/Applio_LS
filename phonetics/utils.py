@@ -191,7 +191,8 @@ def make_proj_anotated_feat_df(df_anotated,
     t0 = time.time()
     
     print('Applying dimensional reduction')
-    X = df_anotated.drop(columns=['phone_base', 'song']).values
+    NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
+    X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
 
     n_neighbors = umap_model.n_neighbors
@@ -206,7 +207,7 @@ def make_proj_anotated_feat_df(df_anotated,
         cols = ['x', 'y', 'z']
 
     df_proj = pd.DataFrame(data = X_projected, columns=cols)
-    df_proj[['phone_base', 'duration', 'song']] = df_anotated[['phone_base', 'duration', 'song']]
+    df_proj[NON_EMBEDDING_COLS] = df_anotated[NON_EMBEDDING_COLS]
 
     if save_df:
         dist = str(min_dist).replace('.', 'p')
@@ -310,6 +311,7 @@ def make_single_feat_df(feat_file):
     song_name = get_song_name(feat_file)
 
     df_feat['phone_base'] = 'none'
+    df_feat['duration'] = 'none'
     df_feat['song'] = song_name
 
     return df_feat
