@@ -9,6 +9,10 @@ import time
 import pandas as pd
 #from pathlib import Path
 import argparse
+#import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')   # must come before importing pyplot
+
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
