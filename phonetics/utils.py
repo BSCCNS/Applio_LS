@@ -245,7 +245,6 @@ def make_anotated_feat_df(feat_paths,
         
     else:
         print(f'No type alignment provided')
-        print(feat_paths)
         df = pd.concat([make_single_feat_df(f) for f in feat_paths], axis=0)
 
 
