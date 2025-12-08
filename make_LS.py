@@ -185,7 +185,12 @@ for layer in range(1,13):
     logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
-    metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
+
+    if param_dict.get('compute_metrics', True):
+        logging.info('Computating metrics')
+        metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
+    else:
+        logging.info('Skipping metric computation')
 
     if param_dict.get("projection_2d", True):
         df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
@@ -197,9 +202,10 @@ for layer in range(1,13):
     dt = t1 - t0
     logging.info(f'------------- Time for layer {layer}: {dt}')
 
-exp_folder = folder_dict["experiment_folder"]
-df_metric = ph_metrics.make_df_metric(metric_dict)
-df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
+if param_dict.get('compute_metrics', True):
+    exp_folder = folder_dict["experiment_folder"]
+    df_metric = ph_metrics.make_df_metric(metric_dict)
+    df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0
