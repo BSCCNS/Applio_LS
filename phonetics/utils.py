@@ -191,6 +191,7 @@ def make_proj_anotated_feat_df(df_anotated,
     t0 = time.time()
     
     print('Applying dimensional reduction')
+    print(df_anotated.columns)
     NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
     X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
