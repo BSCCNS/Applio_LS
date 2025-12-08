@@ -111,7 +111,7 @@ def make_df_annotated(layer, param_dict):
 
     input_path = param_dict["input_path"]
     tp_algn = param_dict["tp_algn"]
-    dataset_tp = param_dict["dataset_tp"]
+    dataset_tp = param_dict.get("dataset_tp", None)
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
 
