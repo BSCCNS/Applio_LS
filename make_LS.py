@@ -131,7 +131,7 @@ def make_df_annotated(layer, param_dict):
 
 def make_df_projected_annotated_2d(df_anotated, param_dict):
     
-    exclude_phones = param_dict.get('exclude_phones_plot', False)
+    exclude_phones = param_dict.get('exclude_phones_plot', [])
     logging.info(f'Excluding phones {exclude_phones} from plot')
 
     metric = param_dict.get('umap_metric', 'euclidean')
