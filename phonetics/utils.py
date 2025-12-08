@@ -20,6 +20,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.preprocessing import normalize
 
+NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
 DIM = 768
 DT = 0.020 #seconds
 
@@ -83,7 +84,7 @@ def train_umap(
     else:
         df_filter = df_anotated
 
-    X = df_filter.drop(columns=['phone_base', 'song']).values
+    X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
         X = np.asarray(X, dtype=np.float32, order="C")
@@ -192,7 +193,6 @@ def make_proj_anotated_feat_df(df_anotated,
     
     print('Applying dimensional reduction')
     print(df_anotated.columns)
-    NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
     X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
 
