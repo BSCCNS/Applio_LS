@@ -230,12 +230,10 @@ def make_anotated_feat_df(feat_paths,
                           remove_short_phones = False):
     
     t0 = time.time()
-    print('here!!')
 
-    print('feat_paths')
-    print(feat_paths)
-
-    df = pd.concat([make_single_anotated_feat_df(f, 
+    if tp_algn is not None:
+        print(f'Using type align {tp_algn}')
+        df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
@@ -244,6 +242,12 @@ def make_anotated_feat_df(feat_paths,
                                                 pad_seconds = pad_seconds,
                                                 remove_short_phones = remove_short_phones) 
                                                 for f in feat_paths], axis=0)
+        
+    else:
+        print(f'No type alignment provided')
+        df = pd.concat([make_single_feat_df(f) for f in feat_paths], axis=0)
+
+
     
     t1 = time.time()
     print(f'-------- Finished making make_anotated_feat_df, time {t1-t0}')
@@ -259,9 +263,6 @@ def make_single_anotated_feat_df(feat_file,
                                  pad_seconds = 0.0101,
                                  remove_short_phones = False):
     
-    print('here2!!')
-    
-
     df_feat = df_features_from_csv_file(feat_file)
 
     song_name = get_song_name(feat_file)
@@ -303,6 +304,15 @@ def make_single_anotated_feat_df(feat_file,
         df_feat_anotated = df_feat_anotated[mask]
 
     return df_feat_anotated
+
+def make_single_feat_df(feat_file):
+    df_feat = df_features_from_csv_file(feat_file)
+    song_name = get_song_name(feat_file)
+
+    df_feat['phone_base'] = 'none'
+    df_feat['song'] = song_name
+
+    return df_feat
 
 def get_song_name(feat_file):
     path = Path(feat_file)
