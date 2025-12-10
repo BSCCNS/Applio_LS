@@ -108,6 +108,9 @@ def boiler_plate(param_dict):
 
     logging.info(f'Folders created : {list(folder_dict.values())}')
 
+    logging.info('folder_dict')
+    logging.info(folder_dict)
+
     return algn_paths, folder_dict 
 
 def make_df_annotated(layer, param_dict):
@@ -128,7 +131,7 @@ def make_df_annotated(layer, param_dict):
                                         add_transitions = add_transitions,
                                         pad_seconds = pad_seconds)
     
-    if param_dict.get("output_feat_768d", True):
+    if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
     return df_anotated
