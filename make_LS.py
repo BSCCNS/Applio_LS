@@ -146,6 +146,9 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
 
     normalize_vectors = param_dict.get('umap_normalize_vectors', False)
     logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
+
+    use_gpu_umap = param_dict.get('use_gpu_umap', False)
+    logging.info(f'Using gpu umap {use_gpu_umap}')
     
     logging.info(f'-------- umap')
     umap2 = u.train_umap(
@@ -156,6 +159,7 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         min_dist=0.1,
         metric = metric,
         normalize_vectors = normalize_vectors,
+        use_gpu = use_gpu_umap,
         save_model = False,
         folder = None)
         
