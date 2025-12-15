@@ -3,15 +3,38 @@ import glob
 import os
 from rvc.extract_feat.infer import VoiceConverter
 import time
+import logging
 
 #INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
 #OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/feat'
 
+###############################################
 args = sys.argv[1:]
 
 INPUT_WAV_PATH = args[0]
 OUTPUT_FEAT_PATH = args[1]
 ext = args[2]
+###############################################
+
+def setup_logs(logs_path):
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(logs_path),   # Logs to a file
+            logging.StreamHandler()           # Prints to console
+        ]
+    )
+    logging.info(f'------------- logs output to {logs_path}')
+
+###############################################
+
+logs_path = 'output.log'
+setup_logs(logs_path)
+
+###############################################
 
 n_layers = list(range(1,13))
 files = glob.glob(f'{INPUT_WAV_PATH}/*.{ext}')

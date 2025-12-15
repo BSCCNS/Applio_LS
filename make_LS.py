@@ -9,6 +9,10 @@ import time
 import pandas as pd
 #from pathlib import Path
 import argparse
+#import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')   # must come before importing pyplot
+
 import matplotlib.pyplot as plt
 
 from phonetics import utils as u
@@ -79,6 +83,8 @@ def boiler_plate(param_dict):
         algn_paths = glob.glob(f'{input_path}/TextGrid/*.TextGrid')
     elif tp_algn == 'lab':
         algn_paths = glob.glob(f'{input_path}/lab/*.lab')
+    elif tp_algn is None:
+        algn_paths = None
 
     experiment_folder = f'experiments/{experiment}'
     folder_dict = {'experiment_folder': experiment_folder}
@@ -102,6 +108,9 @@ def boiler_plate(param_dict):
 
     logging.info(f'Folders created : {list(folder_dict.values())}')
 
+    logging.info('folder_dict')
+    logging.info(folder_dict)
+
     return algn_paths, folder_dict 
 
 def make_df_annotated(layer, param_dict):
@@ -109,7 +118,7 @@ def make_df_annotated(layer, param_dict):
 
     input_path = param_dict["input_path"]
     tp_algn = param_dict["tp_algn"]
-    dataset_tp = param_dict["dataset_tp"]
+    dataset_tp = param_dict.get("dataset_tp", None)
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
 
@@ -122,14 +131,14 @@ def make_df_annotated(layer, param_dict):
                                         add_transitions = add_transitions,
                                         pad_seconds = pad_seconds)
     
-    if param_dict.get("output_feat_768d", True):
+    if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
     return df_anotated
 
 def make_df_projected_annotated_2d(df_anotated, param_dict):
     
-    exclude_phones = param_dict['exclude_phones_plot']
+    exclude_phones = param_dict.get('exclude_phones_plot', [])
     logging.info(f'Excluding phones {exclude_phones} from plot')
 
     metric = param_dict.get('umap_metric', 'euclidean')
@@ -185,7 +194,12 @@ for layer in range(1,13):
     logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
-    metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
+
+    if param_dict.get('compute_metrics', True):
+        logging.info('Computating metrics')
+        metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
+    else:
+        logging.info('Skipping metric computation')
 
     if param_dict.get("projection_2d", True):
         df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
@@ -197,9 +211,10 @@ for layer in range(1,13):
     dt = t1 - t0
     logging.info(f'------------- Time for layer {layer}: {dt}')
 
-exp_folder = folder_dict["experiment_folder"]
-df_metric = ph_metrics.make_df_metric(metric_dict)
-df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
+if param_dict.get('compute_metrics', True):
+    exp_folder = folder_dict["experiment_folder"]
+    df_metric = ph_metrics.make_df_metric(metric_dict)
+    df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
 
 T1 = time.time()    
 DT = T1 - T0

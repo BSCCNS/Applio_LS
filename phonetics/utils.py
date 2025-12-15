@@ -20,6 +20,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.preprocessing import normalize
 
+NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
 DIM = 768
 DT = 0.020 #seconds
 
@@ -83,7 +84,7 @@ def train_umap(
     else:
         df_filter = df_anotated
 
-    X = df_filter.drop(columns=['phone_base', 'song']).values
+    X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
         X = np.asarray(X, dtype=np.float32, order="C")
@@ -191,7 +192,7 @@ def make_proj_anotated_feat_df(df_anotated,
     t0 = time.time()
     
     print('Applying dimensional reduction')
-    X = df_anotated.drop(columns=['phone_base', 'song']).values
+    X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
 
     n_neighbors = umap_model.n_neighbors
@@ -206,7 +207,7 @@ def make_proj_anotated_feat_df(df_anotated,
         cols = ['x', 'y', 'z']
 
     df_proj = pd.DataFrame(data = X_projected, columns=cols)
-    df_proj[['phone_base', 'duration', 'song']] = df_anotated[['phone_base', 'duration', 'song']]
+    df_proj[NON_EMBEDDING_COLS] = df_anotated[NON_EMBEDDING_COLS]
 
     if save_df:
         dist = str(min_dist).replace('.', 'p')
@@ -230,12 +231,10 @@ def make_anotated_feat_df(feat_paths,
                           remove_short_phones = False):
     
     t0 = time.time()
-    print('here!!')
 
-    print('feat_paths')
-    print(feat_paths)
-
-    df = pd.concat([make_single_anotated_feat_df(f, 
+    if tp_algn is not None:
+        print(f'Using type align {tp_algn}')
+        df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,
                                                 tp_algn = tp_algn,
@@ -244,6 +243,12 @@ def make_anotated_feat_df(feat_paths,
                                                 pad_seconds = pad_seconds,
                                                 remove_short_phones = remove_short_phones) 
                                                 for f in feat_paths], axis=0)
+        
+    else:
+        print(f'No type alignment provided')
+        df = pd.concat([make_single_feat_df(f) for f in feat_paths], axis=0)
+
+
     
     t1 = time.time()
     print(f'-------- Finished making make_anotated_feat_df, time {t1-t0}')
@@ -259,9 +264,6 @@ def make_single_anotated_feat_df(feat_file,
                                  pad_seconds = 0.0101,
                                  remove_short_phones = False):
     
-    print('here2!!')
-    
-
     df_feat = df_features_from_csv_file(feat_file)
 
     song_name = get_song_name(feat_file)
@@ -303,6 +305,16 @@ def make_single_anotated_feat_df(feat_file,
         df_feat_anotated = df_feat_anotated[mask]
 
     return df_feat_anotated
+
+def make_single_feat_df(feat_file):
+    df_feat = df_features_from_csv_file(feat_file)
+    song_name = get_song_name(feat_file)
+
+    df_feat['phone_base'] = 'none'
+    df_feat['duration'] = 'none'
+    df_feat['song'] = song_name
+
+    return df_feat
 
 def get_song_name(feat_file):
     path = Path(feat_file)
