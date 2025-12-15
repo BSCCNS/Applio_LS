@@ -46,7 +46,7 @@ T0 = time.time()
 for n_layer in n_layers:
 
     t0 = time.time()
-    print(f'------- working on layer {n_layer}')
+    logging.info(f'------- working on layer {n_layer}')
     output_layer = f'{OUTPUT_FEAT_PATH}/layer_{n_layer}'
     os.makedirs(output_layer, exist_ok=True)
 
