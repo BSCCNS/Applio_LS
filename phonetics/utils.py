@@ -4,6 +4,7 @@ import os
 import time
 import numpy as np
 from pathlib import Path
+import logging
 
 from textgrids import TextGrid
 import re
@@ -68,7 +69,7 @@ def train_umap(
     n_components=3, 
     n_neighbors=100, 
     min_dist=0.2,
-    n_jobs = 4,
+    n_jobs = -1,
     save_model = False,
     metric = 'euclidean',
     normalize_vectors = False,
@@ -107,11 +108,14 @@ def train_umap(
 
     else:
         from umap import UMAP
-        print('Using standard UMAP, fix random state to 42')
+        logging.info('umap::Using standard UMAP')
         if use_random_sate:
             random_state = 42
+            logging.info(f'umap::Fix random state to {random_state}')
+            
         else:
             random_state = None
+            logging.info(f'umap:: Random state is {random_state} (none), n_jobs = {n_jobs}')
 
         reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
