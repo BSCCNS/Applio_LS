@@ -10,7 +10,6 @@ import re
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-from umap import UMAP
 import joblib
 
 from sklearn.model_selection import train_test_split
@@ -73,6 +72,7 @@ def train_umap(
     save_model = False,
     metric = 'euclidean',
     normalize_vectors = False,
+    use_gpu = False,
     folder = ''):
 
     t0 = time.time()
@@ -91,7 +91,23 @@ def train_umap(
         X = normalize(X, norm="l2", axis=1, copy=False)
 
     print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}, n_jobs : {n_jobs}')
-    reducer = UMAP(n_components=n_components, 
+
+    if use_gpu:
+        from cuml.manifold import UMAP
+        print('Using gpu implementation from cuml, init random')
+        reducer = UMAP(
+                n_components=n_components,
+                n_neighbors=n_neighbors,
+                min_dist=min_dist,
+                #metric="cosine", # maybe need to fix cosine metric ??
+                metric = metric,
+                init="random", # avoid spectral-init bug
+                )
+
+    else:
+        from umap import UMAP
+        print('Using standard UMAP, fix random state to 42')
+        reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
                 metric = metric,
