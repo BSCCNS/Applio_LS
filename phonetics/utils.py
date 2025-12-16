@@ -75,6 +75,7 @@ def train_umap(
     normalize_vectors = False,
     use_gpu = False,
     fix_random_sate = True,
+    sample_frac = None,
     folder = ''):
 
     t0 = time.time()
@@ -86,6 +87,10 @@ def train_umap(
     else:
         df_filter = df_anotated
 
+    if sample_frac is not None:
+        logging.info(f'Taking a sample with frac {sample_frac} to train umap')
+        df_filter = df_filter.sample(frac = sample_frac)
+
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
@@ -96,7 +101,7 @@ def train_umap(
 
     if use_gpu:
         from cuml.manifold import UMAP
-        print('Using gpu implementation from cuml, init random')
+        logging.info('Using gpu implementation from cuml, init random')
         reducer = UMAP(
                 n_components=n_components,
                 n_neighbors=n_neighbors,
