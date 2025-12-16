@@ -74,7 +74,7 @@ def train_umap(
     metric = 'euclidean',
     normalize_vectors = False,
     use_gpu = False,
-    use_random_sate = True,
+    fix_random_sate = True,
     folder = ''):
 
     t0 = time.time()
@@ -109,13 +109,13 @@ def train_umap(
     else:
         from umap import UMAP
         logging.info('umap::Using standard UMAP')
-        if use_random_sate:
+        if fix_random_sate:
             random_state = 42
             logging.info(f'umap::Fix random state to {random_state}')
             
         else:
             random_state = None
-            logging.info(f'umap:: Random state is {random_state} (none), n_jobs = {n_jobs}')
+            logging.info(f'umap::Random state is {random_state} (none), n_jobs = {n_jobs}')
 
         reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
