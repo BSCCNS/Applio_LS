@@ -134,6 +134,9 @@ def make_df_annotated(layer, param_dict):
     if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
+    len_minutes = len(df_anotated)*0.02/60
+    logging.info(f'-------- Produced df_annotated with shape {df_anotated.shape}, amounts to {len_minutes} minutes')
+
     return df_anotated
 
 def make_df_projected_annotated_2d(df_anotated, param_dict):
@@ -202,7 +205,7 @@ for layer in range(1,13):
     logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
-
+    
     if param_dict.get('compute_metrics', True):
         logging.info('Computating metrics')
         metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
