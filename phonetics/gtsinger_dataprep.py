@@ -9,7 +9,7 @@ import unicodedata
 from textgrids import TextGrid
 
 lang = 'ZH'
-ROOT = '/Users/tomasandrade/Documents/BSC/ICHOIR/datasets'
+ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets'
 output_folder = f'{ROOT}/GTSinger_{lang}_flat'
 
 SELECT_STYLES = ['Vibrato', 'Glissando']
