@@ -12,7 +12,7 @@ lang = 'ZH'
 ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets'
 output_folder = f'{ROOT}/GTSinger_{lang}_flat'
 
-SELECT_STYLES = ['Vibrato' 'Glissando' 'Breathy' 'Pharyngeal']
+SELECT_STYLES = ['Vibrato', 'Glissando', 'Breathy', 'Pharyngeal']
 EXCLUDE_GROUPS = ['Paired_Speech_Group', 'Control_Group']
 
 #####################################################################################
