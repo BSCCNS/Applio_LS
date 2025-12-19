@@ -112,5 +112,8 @@ for input_path, out_path in zip(df_TextGrid['input_path'], df_TextGrid['out_path
 #################################################################
 ### checks
 
-check_matching_files(lang)
-get_total_length(lang)
+match_files = check_matching_files(lang)
+total_len = get_total_length(lang)
+
+print(match_files)
+print(total_len)
