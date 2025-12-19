@@ -8,11 +8,11 @@ import re
 import unicodedata
 from textgrids import TextGrid
 
-lang = 'KO'
-ROOT = '/Users/tomasandrade/Documents/BSC/ICHOIR/datasets/GTSinger'
+lang = 'ZH'
+ROOT = '/Users/tomasandrade/Documents/BSC/ICHOIR/datasets'
 output_folder = f'{ROOT}/GTSinger_{lang}_flat'
 
-SELECT_STYLES = ['Vibrato', 'Glissando', 'Pharyngeal']
+SELECT_STYLES = ['Vibrato', 'Glissando']
 EXCLUDE_GROUPS = ['Paired_Speech_Group', 'Control_Group']
 
 #####################################################################################
