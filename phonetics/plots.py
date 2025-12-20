@@ -17,7 +17,8 @@ def make_tagged_LS_plot(df,
                 align_head = False,
                 add_legend = True,
                 label_detail = True,
-                save_fig = False,
+                #save_fig = False,
+                save_csv = None,
                 ax = None):
     
     '''
@@ -42,6 +43,9 @@ def make_tagged_LS_plot(df,
 
         if align_head:
             df = align_dancer_head(df, ap_phone = 'AP')
+
+        if save_csv is not None:
+            df[['x','y','phone_base']].to_csv(save_csv, index = False)
         
     cols = [df[col] for col in coords]
     if show_global:
@@ -98,10 +102,10 @@ def make_tagged_LS_plot(df,
     if zlim is not None:
         ax.set_zlim(zlim)
 
-    if save_fig:
-        plt.axis('off')
-        #fig.savefig('LS.svg', format='svg', dpi=1200)
-        fig.savefig('LS.png', dpi=1200)
+    # if save_fig:
+    #     plt.axis('off')
+    #     #fig.savefig('LS.svg', format='svg', dpi=1200)
+    #     fig.savefig('LS.png', dpi=1200)
 
 def align_dancer_head(df, ap_phone = 'AP'):
 
