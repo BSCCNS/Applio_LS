@@ -87,7 +87,7 @@ def boiler_plate(param_dict):
         
     if param_dict.get("projection_3d", True):
         folder_dict.update(
-            {'feat_3d_folder': f'{experiment_folder}/feat_2d',
+            {'feat_3d_folder': f'{experiment_folder}/feat_3d',
               'plots_3d_folder' : f'{experiment_folder}/plots_3d'})
         
     for fo in list(folder_dict.values()):
@@ -187,7 +187,7 @@ def make_plot(df_proj_anotated):
     
     dim = plots.check_dimensions(df_proj_anotated)
 
-    plt.savefig(f'{folder_dict[f"plots_{dim}d_folder"]}/LS_layer_{layer}')
+    plt.savefig(f'{folder_dict[f"plots_{dim}_folder"]}/LS_layer_{layer}')
 
     #plots_3d_folder
 
