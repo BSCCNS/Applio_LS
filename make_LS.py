@@ -45,18 +45,6 @@ def read_param_dict(parser):
 
 param_dict = read_param_dict(parser)
 
-
-#DATA_SET = param_dict["dataset"] #'GTSinger_ES'
-#DATA_SET_TP = param_dict["dataset_tp"] #'gt'
-#EXCLUDE_PHONES = param_dict["exclude_phones"] #None #['<AP>']
-#tp_algn = param_dict["text_grid"]  #'text_grid'
-#K_MI = param_dict["K_MI"] # 50
-
-# DATA_SET = 'songs'
-# DATA_SET_TP = None 
-# EXCLUDE_PHONES =  None 
-# tp_algn = 'lab' 
-
 def setup_logs(logs_path):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
@@ -95,7 +83,12 @@ def boiler_plate(param_dict):
     if param_dict.get("projection_2d", True):
         folder_dict.update(
             {'feat_2d_folder': f'{experiment_folder}/feat_2d',
-              'plots_folder' : f'{experiment_folder}/plots'})
+              'plots_2d_folder' : f'{experiment_folder}/plots_2d'})
+        
+    if param_dict.get("projection_3d", True):
+        folder_dict.update(
+            {'feat_3d_folder': f'{experiment_folder}/feat_2d',
+              'plots_3d_folder' : f'{experiment_folder}/plots_3d'})
         
     for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
@@ -139,7 +132,7 @@ def make_df_annotated(layer, param_dict):
 
     return df_anotated
 
-def make_df_projected_annotated_2d(df_anotated, param_dict):
+def make_df_projected_annotated(df_anotated, param_dict, layer, dim = 2):
     
     exclude_phones = param_dict.get('exclude_phones_plot', [])
     logging.info(f'Excluding phones {exclude_phones} from plot')
@@ -160,10 +153,10 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
     logging.info(f'Using sample_frac_umap {sample_frac_umap}')
 
     logging.info(f'-------- umap')
-    umap2 = u.train_umap(
+    umap = u.train_umap(
         df_anotated,
         exclude_phones = exclude_phones,
-        n_components=2, 
+        n_components=dim, 
         n_neighbors=100, 
         min_dist=0.1,
         metric = metric,
@@ -175,11 +168,11 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         folder = None)
         
     df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
-                                                    umap2,
+                                                    umap,
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_dict["feat_2d_folder"]}/feat_2d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_dict[f"feat_{dim}d_folder"]}/feat_{dim}d_layer_{layer}.csv')
 
     return df_proj_anotated
 
@@ -191,7 +184,12 @@ def make_plot(df_proj_anotated):
             alpha = 0.25, 
             s = 0.1,
             show_global=True)
-    plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
+    
+    dim = plots.check_dimensions(df_proj_anotated)
+
+    plt.savefig(f'{folder_dict[f"plots_{dim}d_folder"]}/LS_layer_{layer}')
+
+    #plots_3d_folder
 
 
 #############################################################
@@ -203,7 +201,18 @@ T0 = time.time()
 algn_paths, folder_dict = boiler_plate(param_dict)
 metric_dict = {}
 
-for layer in range(1,13):
+single_layer = param_dict.get('single_layer', None)
+
+if single_layer is None:
+    logging.info(f'-------- Computing for all layers')
+    min_layer = 1
+    max_layer = 12
+else:
+    logging.info(f'-------- Computing for single layer {single_layer}')
+    min_layer = single_layer
+    max_layer = single_layer
+
+for layer in range(min_layer, max_layer + 1):
 
     t0 = time.time()
     logging.info(f'-------- Working on layer {layer}')
@@ -217,10 +226,22 @@ for layer in range(1,13):
         logging.info('Skipping metric computation')
 
     if param_dict.get("projection_2d", True):
-        df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
-        make_plot(df_proj_anotated)
+        df_proj_anotated_2d = make_df_projected_annotated(df_anotated, 
+                                                          param_dict, 
+                                                          layer, 
+                                                          dim = 2)
+        make_plot(df_proj_anotated_2d)
     else:
         logging.info('Skipping 2d projection and plots')
+
+    if param_dict.get("projection_3d", True):
+        df_proj_anotated_3d = make_df_projected_annotated(df_anotated, 
+                                                          param_dict, 
+                                                          layer, 
+                                                          dim = 3)
+        make_plot(df_proj_anotated_3d)
+    else:
+        logging.info('Skipping 3d projection and plots')
     
     t1 = time.time()
     dt = t1 - t0
