@@ -134,6 +134,9 @@ def make_df_annotated(layer, param_dict):
     if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
+    len_minutes = len(df_anotated)*0.02/60
+    logging.info(f'-------- Produced df_annotated with shape {df_anotated.shape}, amounts to {len_minutes} minutes')
+
     return df_anotated
 
 def make_df_projected_annotated_2d(df_anotated, param_dict):
@@ -146,7 +149,16 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
 
     normalize_vectors = param_dict.get('umap_normalize_vectors', False)
     logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
+
+    use_gpu_umap = param_dict.get('use_gpu_umap', False)
+    logging.info(f'Using gpu umap {use_gpu_umap}')
+
+    fix_random_state_umap = param_dict.get('fix_random_state_umap', True)
+    logging.info(f'Fixing umap random state {fix_random_state_umap}. Only matters if use_gpu_umap is set to False')
     
+    sample_frac_umap = param_dict.get('sample_frac_umap', None)
+    logging.info(f'Using sample_frac_umap {sample_frac_umap}')
+
     logging.info(f'-------- umap')
     umap2 = u.train_umap(
         df_anotated,
@@ -156,6 +168,9 @@ def make_df_projected_annotated_2d(df_anotated, param_dict):
         min_dist=0.1,
         metric = metric,
         normalize_vectors = normalize_vectors,
+        use_gpu = use_gpu_umap,
+        fix_random_sate = fix_random_state_umap,
+        sample_frac = sample_frac_umap,
         save_model = False,
         folder = None)
         
@@ -194,7 +209,7 @@ for layer in range(1,13):
     logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
-
+    
     if param_dict.get('compute_metrics', True):
         logging.info('Computating metrics')
         metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)

@@ -4,13 +4,13 @@ import os
 import time
 import numpy as np
 from pathlib import Path
+import logging
 
 from textgrids import TextGrid
 import re
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-from umap import UMAP
 import joblib
 
 from sklearn.model_selection import train_test_split
@@ -69,10 +69,13 @@ def train_umap(
     n_components=3, 
     n_neighbors=100, 
     min_dist=0.2,
-    n_jobs = 4,
+    n_jobs = -1,
     save_model = False,
     metric = 'euclidean',
     normalize_vectors = False,
+    use_gpu = False,
+    fix_random_sate = True,
+    sample_frac = None,
     folder = ''):
 
     t0 = time.time()
@@ -84,6 +87,10 @@ def train_umap(
     else:
         df_filter = df_anotated
 
+    if sample_frac is not None:
+        logging.info(f'Taking a sample with frac {sample_frac} to train umap')
+        df_filter = df_filter.sample(frac = sample_frac)
+
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
@@ -91,11 +98,35 @@ def train_umap(
         X = normalize(X, norm="l2", axis=1, copy=False)
 
     print(f'Training UMAP with parameters n_components : {n_components}, n_neighbors {n_neighbors}, min_dist : {min_dist}, n_jobs : {n_jobs}')
-    reducer = UMAP(n_components=n_components, 
+
+    if use_gpu:
+        from cuml.manifold import UMAP
+        logging.info('Using gpu implementation from cuml, init random')
+        reducer = UMAP(
+                n_components=n_components,
+                n_neighbors=n_neighbors,
+                min_dist=min_dist,
+                #metric="cosine", # maybe need to fix cosine metric ??
+                metric = metric,
+                init="random", # avoid spectral-init bug
+                )
+
+    else:
+        from umap import UMAP
+        logging.info('umap::Using standard UMAP')
+        if fix_random_sate:
+            random_state = 42
+            logging.info(f'umap::Fix random state to {random_state}')
+            
+        else:
+            random_state = None
+            logging.info(f'umap::Random state is {random_state} (none), n_jobs = {n_jobs}')
+
+        reducer = UMAP(n_components=n_components, 
                 n_neighbors=n_neighbors, 
                 min_dist=min_dist, 
                 metric = metric,
-                random_state=42,
+                random_state=random_state,
                 n_jobs=n_jobs)
 
     reducer.fit(X)
