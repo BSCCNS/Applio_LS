@@ -152,7 +152,7 @@ def make_df_projected_annotated(df_anotated, param_dict, layer, dim = 2):
     sample_frac_umap = param_dict.get('sample_frac_umap', None)
     logging.info(f'Using sample_frac_umap {sample_frac_umap}')
 
-    logging.info(f'-------- umap')
+    logging.info(f'-------- umap to {dim}d')
     umap = u.train_umap(
         df_anotated,
         exclude_phones = exclude_phones,
