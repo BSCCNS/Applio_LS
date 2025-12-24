@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 
 from phonetics import utils as u
 from phonetics import plots as plots
@@ -36,6 +37,8 @@ df_anotated = (
 
 def make_ls(df_anotated, dim, min_dist = 0.1, nn = 100):
     print(f'-------- umap {dim}d')
+
+    t0 = time.time()
     umap = u.train_umap(
     df_anotated,
     exclude_phones = ['SP'],
@@ -54,6 +57,9 @@ def make_ls(df_anotated, dim, min_dist = 0.1, nn = 100):
 
     outfile = f'{OUTDIR}/df_proj_anotated_nn_{nn}_{dim}d.csv'
     df_proj_anotated.to_csv(outfile)
+    t1 = time.time()
+    dt = (t1 - t0)/60
+    print(f'Time : {int(dt)} minutes')
 
 #######################################################################
 
