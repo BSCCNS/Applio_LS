@@ -93,7 +93,6 @@ def train_umap(
         logging.info(f'Taking a sample with frac {sample_frac} to train umap')
         df_filter = df_filter.sample(frac = sample_frac)
 
-    print(df_filter.head())
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
