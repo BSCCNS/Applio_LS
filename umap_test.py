@@ -7,9 +7,9 @@ from phonetics import plots as plots
 
 #############################################################
 
-#root = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments'
+root = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments'
 
-root = '/home/bsc/bsc270816/Applio_LS/experiments'
+#root = '/home/bsc/bsc270816/Applio_LS/experiments'
 experiment = 'maria_v2_NEW'
 file = f'{root}/{experiment}/feat_768d/feat_768d_layer_12.csv'
 
