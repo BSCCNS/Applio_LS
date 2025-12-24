@@ -7,7 +7,14 @@ from phonetics import plots as plots
 
 #############################################################
 
-df_anotated = pd.read_csv("/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_v0/feat_768d/feat_768d_layer_12.csv")
+#root = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments'
+
+root = '/home/bsc/bsc270816/Applio_LS/experiments'
+experiment = 'maria_v2_NEW'
+file = f'{root}/{experiment}/feat_768d/feat_768d_layer_12.csv'
+
+print(f'-------- reding data')
+df_anotated = pd.read_csv(file)
 
 print(f'-------- umap')
 umap2 = u.train_umap(
@@ -19,6 +26,7 @@ min_dist=0.1,
 n_jobs=1,
 save_model = False,
 folder = None)
+print(f'-------- umap finished')
     
 df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
                                                 umap2,
@@ -27,6 +35,7 @@ df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated,
 
 df_proj_anotated.to_csv('df_proj_anotated_test.csv')
 
+print(f'-------- Making plot')
 def make_plot(df_proj_anotated):
     print(f'-------- plot')
     my_phones = [k for k in df_proj_anotated['phone_base'].value_counts().keys() if k != 'AP']
