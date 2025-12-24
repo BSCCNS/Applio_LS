@@ -55,7 +55,7 @@ def make_ls(df_anotated, dim, min_dist = 0.1, nn = 100):
                                                     save_df = False,
                                                     folder = None)
 
-    outfile = f'{OUTDIR}/df_proj_anotated_nn_{nn}_{dim}d.csv'
+    outfile = f'{OUTDIR}/df_proj_anotated_nn_{nn}_min_dist_{min_dist}_{dim}d.csv'
     df_proj_anotated.to_csv(outfile)
     t1 = time.time()
     dt = (t1 - t0)/60
