@@ -14,7 +14,7 @@ experiment = 'maria_v2_NEW'
 file = f'{root}/{experiment}/feat_768d/feat_768d_layer_12.csv'
 
 print(f'-------- reding data')
-df_anotated = pd.read_csv(file)
+df_anotated = pd.read_csv(file, index_col=0)
 
 print(f'-------- umap')
 umap2 = u.train_umap(
