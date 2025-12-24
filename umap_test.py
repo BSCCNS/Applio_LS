@@ -12,11 +12,11 @@ df_anotated = pd.read_csv("/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/ma
 print(f'-------- umap')
 umap2 = u.train_umap(
 df_anotated,
-exclude_phones = None,
+exclude_phones = ['SP'],
 n_components=2, 
 n_neighbors=100, 
 min_dist=0.1,
-n_jobs=-1,
+n_jobs=1,
 save_model = False,
 folder = None)
     
@@ -24,6 +24,7 @@ df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated,
                                                 umap2,
                                                 save_df = False,
                                                 folder = None)
+
 df_proj_anotated.to_csv('df_proj_anotated_test.csv')
 
 def make_plot(df_proj_anotated):
