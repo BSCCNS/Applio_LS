@@ -13,6 +13,8 @@ root = '/home/bsc/bsc270816/Applio_LS/experiments'
 experiment = 'maria_v2_NEW'
 file = f'{root}/{experiment}/feat_768d/feat_768d_layer_12.csv'
 
+OUTDIR = './umap_test'
+
 print(f'-------- reding data')
 df_anotated = pd.read_csv(file, index_col=0)
 
@@ -32,45 +34,43 @@ df_anotated = (
 
 #######################################################################
 
-print(f'-------- umap 2d')
-umap2 = u.train_umap(
-df_anotated,
-exclude_phones = ['SP'],
-n_components=2, 
-n_neighbors=100, 
-min_dist=0.1,
-n_jobs=1,
-save_model = False,
-folder = None)
-print(f'-------- umap 2d finished')
-    
-df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
-                                                umap2,
-                                                save_df = False,
-                                                folder = None)
+def make_ls(df_anotated, dim, min_dist = 0.1, nn = 100):
+    print(f'-------- umap {dim}d')
+    umap = u.train_umap(
+    df_anotated,
+    exclude_phones = ['SP'],
+    n_components = dim, 
+    n_neighbors = nn, 
+    min_dist = min_dist,
+    n_jobs = 1,
+    save_model = False,
+    folder = None)
+    print(f'-------- umap {dim}d finished')
+        
+    df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
+                                                    umap,
+                                                    save_df = False,
+                                                    folder = None)
 
-df_proj_anotated.to_csv('df_proj_anotated_test_2d.csv')
+    outfile = f'{OUTDIR}/df_proj_anotated_nn_{nn}_{dim}d.csv'
+    df_proj_anotated.to_csv(outfile)
 
 #######################################################################
 
-print(f'-------- umap 3d')
-umap3 = u.train_umap(
-df_anotated,
-exclude_phones = ['SP'],
-n_components=3, 
-n_neighbors=100, 
-min_dist=0.1,
-n_jobs=1,
-save_model = False,
-folder = None)
-print(f'-------- umap 3d finished')
-    
-df_proj_anotated_3d = u.make_proj_anotated_feat_df(df_anotated, 
-                                                umap3,
-                                                save_df = False,
-                                                folder = None)
+dim = 2
+make_ls(df_anotated, 
+        dim, 
+        min_dist = 0.1, 
+        nn = 100)
 
-df_proj_anotated_3d.to_csv('df_proj_anotated_test_3d.csv')
+dim = 3
+for min_dist in [0.1, 0.2, 0.3]:
+    make_ls(df_anotated, 
+            dim, 
+            min_dist = min_dist, 
+            nn = 100)
+
+
 
 
 
