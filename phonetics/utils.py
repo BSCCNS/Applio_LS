@@ -80,6 +80,8 @@ def train_umap(
 
     t0 = time.time()
 
+    df_anotated = df_anotated.copy()
+
     # train umap with dataset without silence
     if exclude_phones is not None:
         mask = ~df_anotated['phone_base'].isin(exclude_phones)
@@ -91,6 +93,7 @@ def train_umap(
         logging.info(f'Taking a sample with frac {sample_frac} to train umap')
         df_filter = df_filter.sample(frac = sample_frac)
 
+    print(df_filter.head())
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
     if normalize_vectors:
@@ -222,6 +225,9 @@ def make_proj_anotated_feat_df(df_anotated,
     
     t0 = time.time()
     
+    df_anotated = df_anotated.copy()
+    df_anotated = df_anotated.reset_index(drop = True)
+
     print('Applying dimensional reduction')
     X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
@@ -237,7 +243,7 @@ def make_proj_anotated_feat_df(df_anotated,
     elif dim == 3:
         cols = ['x', 'y', 'z']
 
-    df_proj = pd.DataFrame(data = X_projected, columns=cols)
+    df_proj = pd.DataFrame(data = X_projected, columns=cols)    
     df_proj[NON_EMBEDDING_COLS] = df_anotated[NON_EMBEDDING_COLS]
 
     if save_df:

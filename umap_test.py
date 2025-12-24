@@ -16,6 +16,21 @@ file = f'{root}/{experiment}/feat_768d/feat_768d_layer_12.csv'
 print(f'-------- reding data')
 df_anotated = pd.read_csv(file, index_col=0)
 
+print(f'-------- sorting data')
+phoneme_order = list(df_anotated['phone_base'].value_counts().keys())
+rank = {p: i for i, p in enumerate(phoneme_order)}
+df_anotated = (
+    df_anotated
+    .assign(_phoneme_rank=df_anotated["phone_base"].map(rank))
+    .sort_values(
+        ["_phoneme_rank", "duration"],
+        kind="mergesort"
+    )
+    .drop(columns="_phoneme_rank")
+    .reset_index(drop=True)
+)
+
+
 print(f'-------- umap')
 umap2 = u.train_umap(
 df_anotated,
