@@ -14,26 +14,10 @@ feat_path_song = f'{root_song}/{song_name}.csv'
 print('----- Reading full LS data')
 
 df_anotated = pd.read_csv(feat_path, index_col=0)
-
-phoneme_order = list(df_anotated['phone_base'].value_counts().keys())
-rank = {p: i for i, p in enumerate(phoneme_order)}
-
-df_anotated = (
-    df_anotated
-    .assign(_phoneme_rank=df_anotated["phone_base"].map(rank))
-    .sort_values(
-        ["_phoneme_rank", "duration"],
-        kind="mergesort"
-    )
-    .drop(columns="_phoneme_rank")
-    .reset_index(drop=True)
-)
-
 df_anotated_projected = pd.read_csv(feat_projected_path, index_col=0)
 
 ##########################################################################
 print('----- Reading song LS data')
-
 df_song_feat = pd.read_csv(feat_path_song, index_col=0)
 
 ##########################################################################
