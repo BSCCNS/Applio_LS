@@ -233,7 +233,7 @@ for layer in range(min_layer, max_layer + 1):
     dt = t1 - t0
     logging.info(f'------------- Time for layer {layer}: {dt}')
 
-if param_dict.get('compute_metrics', True):
+if param_dict.get('compute_metrics', False):
     exp_folder = folder_dict["experiment_folder"]
     df_metric = ph_metrics.make_df_metric(metric_dict)
     df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
