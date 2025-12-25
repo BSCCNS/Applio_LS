@@ -1,0 +1,61 @@
+import numpy as np
+import pandas as pd
+from scipy.spatial import cKDTree
+
+root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
+feat_path = f'{root_exp}/feat_768d/feat_768d_layer_12.csv'
+feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
+
+root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
+song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_LEADVOCAL'
+feat_path_song = f'{root_song}/{song_name}.csv'
+
+##########################################################################
+print('----- Reading full LS data')
+
+df_anotated = pd.read_csv(feat_path, index_col=0)
+
+phoneme_order = list(df_anotated['phone_base'].value_counts().keys())
+rank = {p: i for i, p in enumerate(phoneme_order)}
+
+df_anotated = (
+    df_anotated
+    .assign(_phoneme_rank=df_anotated["phone_base"].map(rank))
+    .sort_values(
+        ["_phoneme_rank", "duration"],
+        kind="mergesort"
+    )
+    .drop(columns="_phoneme_rank")
+    .reset_index(drop=True)
+)
+
+df_anotated_projected = pd.read_csv(feat_projected_path, index_col=0)
+
+##########################################################################
+print('----- Reading song LS data')
+
+df_song_feat = pd.read_csv(feat_path_song, index_col=0)
+
+##########################################################################
+print('----- Constructing distance tree')
+
+X_full_values = df_anotated.drop(columns=['phone_base', 'duration', 'song']).to_numpy()
+tree = cKDTree(X_full_values)
+
+# Query nearest df1 point for each df2 point
+dist, idx = tree.query(df_song_feat.to_numpy(), k=1)  # k=1 = nearest
+
+# Assign tag (and optionally distance / matched df1 index)
+df2_tagged = df_song_feat.copy()
+df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
+
+df2_tagged['nn_distance'] = dist
+df2_tagged['nn_df1_index'] = df_anotated.index.to_numpy()[idx]  # keeps original df1 index
+
+##########################################################################
+print('----- Applying annotated projection by proximity')
+
+df_song_projected_proximity = df_anotated_projected.iloc[df2_tagged['nn_df1_index']]
+
+outfile = f'{root_song}/{song_name}_approx_projection.csv'
+df_song_projected_proximity.to_csv(outfile)
