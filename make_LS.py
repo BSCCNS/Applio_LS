@@ -108,6 +108,7 @@ def make_df_annotated(layer, param_dict):
     dataset_tp = param_dict.get("dataset_tp", None)
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
+    sort_annotated_data = param_dict.get("sort_annotated_data", False)
 
     feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
 
@@ -117,6 +118,21 @@ def make_df_annotated(layer, param_dict):
                                         dataset = dataset_tp,
                                         add_transitions = add_transitions,
                                         pad_seconds = pad_seconds)
+    
+    if sort_annotated_data:
+        logging.info(f'-------- sorting annotated data')
+        phoneme_order = list(df_anotated['phone_base'].value_counts().keys())
+        rank = {p: i for i, p in enumerate(phoneme_order)}
+        df_anotated = (
+            df_anotated
+            .assign(_phoneme_rank=df_anotated["phone_base"].map(rank))
+            .sort_values(
+                ["_phoneme_rank", "duration"],
+                kind="mergesort"
+            )
+            .drop(columns="_phoneme_rank")
+            .reset_index(drop=True)
+        )
     
     if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
