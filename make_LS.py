@@ -131,25 +131,27 @@ def make_df_projected_annotated(df_anotated, param_dict, layer):
 
     logging.info(f'--------- UMAP')
 
-    dim = param_dict['umap'].get("dim")
-    min_dist = param_dict['umap'].get("min_dist", 0.1)
-    n_neighbors = param_dict['umap'].get("n_neighbors", 100)
-    metric = param_dict['umap'].get('metric', 'euclidean')
-    n_jobs = param_dict['umap'].get('n_jobs', 1)
+    umap_dict = param_dict['umap']
+
+    dim = umap_dict.get("dim")
+    min_dist = umap_dict.get("min_dist", 0.1)
+    n_neighbors = umap_dict.get("n_neighbors", 100)
+    metric = umap_dict.get('metric', 'euclidean')
+    n_jobs = umap_dict.get('n_jobs', 1)
 
     logging.info(f'UMAP: dim {dim} | n_neighbors {n_neighbors} | min_dist {min_dist} | metric {metric} | n_jobs {n_jobs}')
 
     # TODO: rename exclude_phones_plot -> exclude_phones_umap
-    exclude_phones = param_dict.get('exclude_phones_plot', [])
+    exclude_phones = umap_dict.get('exclude_phones_plot', [])
     logging.info(f'Excluding phones {exclude_phones} from projection')
 
-    normalize_vectors = param_dict['umap'].get('normalize_vectors', False)
+    normalize_vectors = umap_dict.get('normalize_vectors', False)
     logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
 
-    use_gpu_umap = param_dict['umap'].get('use_gpu', False)
+    use_gpu_umap = umap_dict.get('use_gpu', False)
     logging.info(f'Using gpu umap {use_gpu_umap}')
 
-    fix_random_state_umap = param_dict['umap'].get('fix_random_state', True)
+    fix_random_state_umap = umap_dict.get('fix_random_state', True)
     logging.info(f'Fixing umap random state {fix_random_state_umap}. Only matters if use_gpu_umap is set to False')
 
     umap = u.train_umap(
