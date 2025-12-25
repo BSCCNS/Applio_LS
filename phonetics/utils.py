@@ -126,7 +126,9 @@ def train_umap(
                 random_state=random_state,
                 n_jobs=n_jobs)
 
+    logging.info('umap::Training started')
     reducer.fit(X)
+    logging.info('umap::Training finished')
 
     if save_model:
         dist = str(min_dist).replace('.', 'p')
