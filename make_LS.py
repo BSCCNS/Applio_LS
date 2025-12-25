@@ -81,7 +81,7 @@ def boiler_plate(param_dict):
         folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
 
     if param_dict.get("umap_projection", True):
-        umap_dim = param_dict.get("umap_dim")
+        umap_dim = param_dict['umap'].get("dim")
         logging.info(f'Doing umap projection to dim {umap_dim}')
 
         folder_dict.update(
