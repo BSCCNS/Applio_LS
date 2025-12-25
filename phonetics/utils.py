@@ -224,7 +224,7 @@ def make_proj_anotated_feat_df(df_anotated,
     df_anotated = df_anotated.copy()
     df_anotated = df_anotated.reset_index(drop = True)
 
-    print('Applying dimensional reduction')
+    logging.info('Applying dimensional reduction')
     X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
 
@@ -232,7 +232,7 @@ def make_proj_anotated_feat_df(df_anotated,
     dim = umap_model.n_components
     min_dist = umap_model.min_dist
 
-    print(f'Reduced to {dim} dimensions')
+    logging.info(f'Reduced to {dim} dimensions')
 
     if dim == 2:
         cols = ['x', 'y']
@@ -249,7 +249,7 @@ def make_proj_anotated_feat_df(df_anotated,
         df_proj.to_csv(file)
 
     t1 = time.time()
-    print(f'Finished computing projection. Transform time :{t1-t0}')
+    logging.info(f'Finished computing projection. Transform time :{t1-t0}')
 
     return df_proj
 
@@ -266,7 +266,7 @@ def make_anotated_feat_df(feat_paths,
     t0 = time.time()
 
     if tp_algn is not None:
-        print(f'Using type align {tp_algn}')
+        logging.info(f'Using type align {tp_algn}')
         df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,

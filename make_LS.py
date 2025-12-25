@@ -34,7 +34,6 @@ parser = argparse.ArgumentParser(
 
 # Define named arguments
 parser.add_argument('--parfile', type=str, required=True, help="Path to the parameter file")
-#parser.add_argument('--stage', type=str, required=True, help="Optional argument")
 
 def read_param_dict(parser):
     args = parser.parse_args()
