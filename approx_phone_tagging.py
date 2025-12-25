@@ -13,8 +13,8 @@ feat_path_song = f'{root_song}/{song_name}.csv'
 ##########################################################################
 print('----- Reading full LS data')
 
-df_anotated = pd.read_csv(feat_path, index_col=0)
-df_anotated_projected = pd.read_csv(feat_projected_path, index_col=0)
+df_anotated = pd.read_csv(feat_path, index_col=0, low_memory=False)
+df_anotated_projected = pd.read_csv(feat_projected_path, index_col=0, low_memory=False)
 
 ##########################################################################
 print('----- Reading song LS data')
@@ -42,4 +42,5 @@ print('----- Applying annotated projection by proximity')
 df_song_projected_proximity = df_anotated_projected.iloc[df2_tagged['nn_df1_index']]
 
 outfile = f'{root_song}/{song_name}_approx_projection.csv'
+print(f'----- Saving output to {outfile}')
 df_song_projected_proximity.to_csv(outfile)
