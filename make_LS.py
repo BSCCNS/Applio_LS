@@ -80,16 +80,14 @@ def boiler_plate(param_dict):
     if param_dict.get("output_feat_768d", False):
         folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
 
-    if param_dict.get("projection_2d", True):
+    if param_dict.get("umap_projection", True):
+        umap_dim = param_dict.get("umap_dim")
+        logging.info(f'Doing umap projection to dim {umap_dim}')
+
         folder_dict.update(
-            {'feat_2d_folder': f'{experiment_folder}/feat_2d',
-              'plots_2d_folder' : f'{experiment_folder}/plots_2d'})
-        
-    if param_dict.get("projection_3d", True):
-        folder_dict.update(
-            {'feat_3d_folder': f'{experiment_folder}/feat_3d',
-              'plots_3d_folder' : f'{experiment_folder}/plots_3d'})
-        
+            {'feat_umap_folder': f'{experiment_folder}/feat_{umap_dim}d',
+              'plots_umap_folder' : f'{experiment_folder}/plots_{umap_dim}d'})
+                
     for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
 
@@ -100,9 +98,6 @@ def boiler_plate(param_dict):
     setup_logs(logs_path)
 
     logging.info(f'Folders created : {list(folder_dict.values())}')
-
-    logging.info('folder_dict')
-    logging.info(folder_dict)
 
     return algn_paths, folder_dict 
 
@@ -132,38 +127,42 @@ def make_df_annotated(layer, param_dict):
 
     return df_anotated
 
-def make_df_projected_annotated(df_anotated, param_dict, layer, dim = 2):
-    
+def make_df_projected_annotated(df_anotated, param_dict, layer):
+
+    logging.info(f'--------- UMAP')
+
+    dim = param_dict['umap'].get("dim")
+    min_dist = param_dict['umap'].get("min_dist", 0.1)
+    n_neighbors = param_dict['umap'].get("n_neighbors", 100)
+    metric = param_dict['umap'].get('metric', 'euclidean')
+    n_jobs = param_dict['umap'].get('n_jobs', 1)
+
+    logging.info(f'UMAP: dim {dim} | n_neighbors {n_neighbors} | min_dist {min_dist} | metric {metric} | n_jobs {n_jobs}')
+
+    # TODO: rename exclude_phones_plot -> exclude_phones_umap
     exclude_phones = param_dict.get('exclude_phones_plot', [])
     logging.info(f'Excluding phones {exclude_phones} from plot')
 
-    metric = param_dict.get('umap_metric', 'euclidean')
-    logging.info(f'UMAP projection using metric {metric}')
-
-    normalize_vectors = param_dict.get('umap_normalize_vectors', False)
+    normalize_vectors = param_dict['umap'].get('normalize_vectors', False)
     logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
 
-    use_gpu_umap = param_dict.get('use_gpu_umap', False)
+    use_gpu_umap = param_dict['umap'].get('use_gpu', False)
     logging.info(f'Using gpu umap {use_gpu_umap}')
 
-    fix_random_state_umap = param_dict.get('fix_random_state_umap', True)
+    fix_random_state_umap = param_dict['umap'].get('fix_random_state', True)
     logging.info(f'Fixing umap random state {fix_random_state_umap}. Only matters if use_gpu_umap is set to False')
-    
-    sample_frac_umap = param_dict.get('sample_frac_umap', None)
-    logging.info(f'Using sample_frac_umap {sample_frac_umap}')
 
-    logging.info(f'-------- umap to {dim}d')
     umap = u.train_umap(
         df_anotated,
         exclude_phones = exclude_phones,
         n_components=dim, 
-        n_neighbors=100, 
-        min_dist=0.1,
+        n_neighbors=n_neighbors, 
+        min_dist=min_dist,
+        n_jobs = n_jobs,
         metric = metric,
         normalize_vectors = normalize_vectors,
         use_gpu = use_gpu_umap,
         fix_random_sate = fix_random_state_umap,
-        sample_frac = sample_frac_umap,
         save_model = False,
         folder = None)
         
@@ -172,7 +171,7 @@ def make_df_projected_annotated(df_anotated, param_dict, layer, dim = 2):
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_dict[f"feat_{dim}d_folder"]}/feat_{dim}d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_dict[f"feat_umap_folder"]}/feat_{dim}d_layer_{layer}.csv')
 
     return df_proj_anotated
 
@@ -187,7 +186,7 @@ def make_plot(df_proj_anotated):
     
     dim = plots.check_dimensions(df_proj_anotated)
 
-    plt.savefig(f'{folder_dict[f"plots_{dim}_folder"]}/LS_layer_{layer}')
+    plt.savefig(f'{folder_dict[f"plots_umap_folder"]}/LS_layer_{layer}')
 
     #plots_3d_folder
 

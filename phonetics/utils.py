@@ -68,14 +68,13 @@ def train_umap(
     exclude_phones = ['SP'],
     n_components=3, 
     n_neighbors=100, 
-    min_dist=0.2,
+    min_dist=0.1,
     n_jobs = -1,
     save_model = False,
     metric = 'euclidean',
     normalize_vectors = False,
     use_gpu = False,
     fix_random_sate = True,
-    sample_frac = None,
     folder = ''):
 
     t0 = time.time()
@@ -88,10 +87,6 @@ def train_umap(
         df_filter = df_anotated[mask]
     else:
         df_filter = df_anotated
-
-    if sample_frac is not None:
-        logging.info(f'Taking a sample with frac {sample_frac} to train umap')
-        df_filter = df_filter.sample(frac = sample_frac)
 
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
@@ -135,7 +130,7 @@ def train_umap(
 
     if save_model:
         dist = str(min_dist).replace('.', 'p')
-        file = f'{folder}/umap_all_songs_n{n_neighbors}_dist{dist}_{n_components}D.sav'
+        file = f'{folder}/umap_n{n_neighbors}_dist{dist}_{n_components}D.sav'
         print(f'Saving model to file {file}')
 
         os.makedirs(folder, exist_ok=True)
