@@ -8,7 +8,7 @@ feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
 
 root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
 #song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_LEADVOCAL'
-song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS.csv'
+song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS'
 feat_path_song = f'{root_song}/{song_name}.csv'
 
 ##########################################################################
