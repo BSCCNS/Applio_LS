@@ -17,6 +17,7 @@ def make_tagged_LS_plot(df,
                 align_head = False,
                 add_legend = True,
                 label_detail = True,
+                remove_box = False, 
                 #save_fig = False,
                 save_csv = None,
                 ax = None,
@@ -99,6 +100,9 @@ def make_tagged_LS_plot(df,
     
     if add_legend:
         ax.legend(handles=legs)
+
+    if remove_box:
+        ax.axis('off')
 
     if xlim is not None:
         ax.set_xlim(xlim)
