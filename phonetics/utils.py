@@ -68,17 +68,18 @@ def train_umap(
     exclude_phones = ['SP'],
     n_components=3, 
     n_neighbors=100, 
-    min_dist=0.2,
+    min_dist=0.1,
     n_jobs = -1,
     save_model = False,
     metric = 'euclidean',
     normalize_vectors = False,
     use_gpu = False,
     fix_random_sate = True,
-    sample_frac = None,
     folder = ''):
 
     t0 = time.time()
+
+    df_anotated = df_anotated.copy()
 
     # train umap with dataset without silence
     if exclude_phones is not None:
@@ -86,10 +87,6 @@ def train_umap(
         df_filter = df_anotated[mask]
     else:
         df_filter = df_anotated
-
-    if sample_frac is not None:
-        logging.info(f'Taking a sample with frac {sample_frac} to train umap')
-        df_filter = df_filter.sample(frac = sample_frac)
 
     X = df_filter.drop(columns=NON_EMBEDDING_COLS).values
 
@@ -129,11 +126,13 @@ def train_umap(
                 random_state=random_state,
                 n_jobs=n_jobs)
 
+    logging.info('umap::Training started')
     reducer.fit(X)
+    logging.info('umap::Training finished')
 
     if save_model:
         dist = str(min_dist).replace('.', 'p')
-        file = f'{folder}/umap_all_songs_n{n_neighbors}_dist{dist}_{n_components}D.sav'
+        file = f'{folder}/umap_n{n_neighbors}_dist{dist}_{n_components}D.sav'
         print(f'Saving model to file {file}')
 
         os.makedirs(folder, exist_ok=True)
@@ -222,7 +221,10 @@ def make_proj_anotated_feat_df(df_anotated,
     
     t0 = time.time()
     
-    print('Applying dimensional reduction')
+    df_anotated = df_anotated.copy()
+    df_anotated = df_anotated.reset_index(drop = True)
+
+    logging.info('Applying dimensional reduction')
     X = df_anotated.drop(columns = NON_EMBEDDING_COLS).values
     X_projected = umap_model.transform(X)
 
@@ -230,14 +232,14 @@ def make_proj_anotated_feat_df(df_anotated,
     dim = umap_model.n_components
     min_dist = umap_model.min_dist
 
-    print(f'Reduced to {dim} dimensions')
+    logging.info(f'Reduced to {dim} dimensions')
 
     if dim == 2:
         cols = ['x', 'y']
     elif dim == 3:
         cols = ['x', 'y', 'z']
 
-    df_proj = pd.DataFrame(data = X_projected, columns=cols)
+    df_proj = pd.DataFrame(data = X_projected, columns=cols)    
     df_proj[NON_EMBEDDING_COLS] = df_anotated[NON_EMBEDDING_COLS]
 
     if save_df:
@@ -247,7 +249,7 @@ def make_proj_anotated_feat_df(df_anotated,
         df_proj.to_csv(file)
 
     t1 = time.time()
-    print(f'Finished computing projection. Transform time :{t1-t0}')
+    logging.info(f'Finished computing projection. Transform time :{t1-t0}')
 
     return df_proj
 
@@ -264,7 +266,7 @@ def make_anotated_feat_df(feat_paths,
     t0 = time.time()
 
     if tp_algn is not None:
-        print(f'Using type align {tp_algn}')
+        logging.info(f'Using type align {tp_algn}')
         df = pd.concat([make_single_anotated_feat_df(f, 
                                                 lab_paths,
                                                 from_converted = from_converted,

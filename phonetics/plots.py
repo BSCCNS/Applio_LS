@@ -17,9 +17,11 @@ def make_tagged_LS_plot(df,
                 align_head = False,
                 add_legend = True,
                 label_detail = True,
+                remove_box = False, 
                 #save_fig = False,
                 save_csv = None,
-                ax = None):
+                ax = None,
+                set_colors = None):
     
     '''
     df projected, anotated
@@ -56,8 +58,12 @@ def make_tagged_LS_plot(df,
 
     legs = []
     num_classes = len(phones)
-    colors = cm.get_cmap('tab20', num_classes)
-
+    if set_colors is None:
+        colors = cm.get_cmap('tab20', num_classes)
+    else:
+        def colors(i):
+            return  set_colors[i]
+        
     if type(phones) == list:
         classes = phones
     elif type(phones) == dict:
@@ -94,6 +100,9 @@ def make_tagged_LS_plot(df,
     
     if add_legend:
         ax.legend(handles=legs)
+
+    if remove_box:
+        ax.axis('off')
 
     if xlim is not None:
         ax.set_xlim(xlim)

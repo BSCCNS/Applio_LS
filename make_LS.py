@@ -34,7 +34,6 @@ parser = argparse.ArgumentParser(
 
 # Define named arguments
 parser.add_argument('--parfile', type=str, required=True, help="Path to the parameter file")
-#parser.add_argument('--stage', type=str, required=True, help="Optional argument")
 
 def read_param_dict(parser):
     args = parser.parse_args()
@@ -44,18 +43,6 @@ def read_param_dict(parser):
     return param_dict
 
 param_dict = read_param_dict(parser)
-
-
-#DATA_SET = param_dict["dataset"] #'GTSinger_ES'
-#DATA_SET_TP = param_dict["dataset_tp"] #'gt'
-#EXCLUDE_PHONES = param_dict["exclude_phones"] #None #['<AP>']
-#tp_algn = param_dict["text_grid"]  #'text_grid'
-#K_MI = param_dict["K_MI"] # 50
-
-# DATA_SET = 'songs'
-# DATA_SET_TP = None 
-# EXCLUDE_PHONES =  None 
-# tp_algn = 'lab' 
 
 def setup_logs(logs_path):
     for handler in logging.root.handlers[:]:
@@ -92,11 +79,14 @@ def boiler_plate(param_dict):
     if param_dict.get("output_feat_768d", False):
         folder_dict.update({'feat_768d_folder': f'{experiment_folder}/feat_768d'})
 
-    if param_dict.get("projection_2d", True):
+    if param_dict.get("umap_projection", True):
+        umap_dim = param_dict['umap'].get("dim")
+        logging.info(f'Doing umap projection to dim {umap_dim}')
+
         folder_dict.update(
-            {'feat_2d_folder': f'{experiment_folder}/feat_2d',
-              'plots_folder' : f'{experiment_folder}/plots'})
-        
+            {'feat_umap_folder': f'{experiment_folder}/feat_{umap_dim}d',
+              'plots_umap_folder' : f'{experiment_folder}/plots_{umap_dim}d'})
+                
     for fo in list(folder_dict.values()):
         os.makedirs(fo, exist_ok=True)
 
@@ -108,9 +98,6 @@ def boiler_plate(param_dict):
 
     logging.info(f'Folders created : {list(folder_dict.values())}')
 
-    logging.info('folder_dict')
-    logging.info(folder_dict)
-
     return algn_paths, folder_dict 
 
 def make_df_annotated(layer, param_dict):
@@ -121,6 +108,7 @@ def make_df_annotated(layer, param_dict):
     dataset_tp = param_dict.get("dataset_tp", None)
     add_transitions = param_dict.get("add_transitions", False)
     pad_seconds = param_dict.get("pad_seconds", None)
+    sort_annotated_data = param_dict.get("sort_annotated_data", False)
 
     feat_paths = glob.glob(f'{input_path}/feat/layer_{layer}/*.csv')
 
@@ -131,6 +119,21 @@ def make_df_annotated(layer, param_dict):
                                         add_transitions = add_transitions,
                                         pad_seconds = pad_seconds)
     
+    if sort_annotated_data:
+        logging.info(f'-------- sorting annotated data')
+        phoneme_order = list(df_anotated['phone_base'].value_counts().keys())
+        rank = {p: i for i, p in enumerate(phoneme_order)}
+        df_anotated = (
+            df_anotated
+            .assign(_phoneme_rank=df_anotated["phone_base"].map(rank))
+            .sort_values(
+                ["_phoneme_rank", "duration"],
+                kind="mergesort"
+            )
+            .drop(columns="_phoneme_rank")
+            .reset_index(drop=True)
+        )
+    
     if param_dict.get("output_feat_768d", False):
         df_anotated.to_csv(f'{folder_dict["feat_768d_folder"]}/feat_768d_layer_{layer}.csv')
 
@@ -139,47 +142,53 @@ def make_df_annotated(layer, param_dict):
 
     return df_anotated
 
-def make_df_projected_annotated_2d(df_anotated, param_dict):
-    
-    exclude_phones = param_dict.get('exclude_phones_plot', [])
-    logging.info(f'Excluding phones {exclude_phones} from plot')
+def make_df_projected_annotated(df_anotated, param_dict, layer):
 
-    metric = param_dict.get('umap_metric', 'euclidean')
-    logging.info(f'UMAP projection using metric {metric}')
+    logging.info(f'--------- UMAP')
 
-    normalize_vectors = param_dict.get('umap_normalize_vectors', False)
+    umap_dict = param_dict['umap']
+
+    dim = umap_dict.get("dim")
+    min_dist = umap_dict.get("min_dist", 0.1)
+    n_neighbors = umap_dict.get("n_neighbors", 100)
+    metric = umap_dict.get('metric', 'euclidean')
+    n_jobs = umap_dict.get('n_jobs', 1)
+
+    logging.info(f'UMAP: dim {dim} | n_neighbors {n_neighbors} | min_dist {min_dist} | metric {metric} | n_jobs {n_jobs}')
+
+    # TODO: rename exclude_phones_plot -> exclude_phones_umap
+    exclude_phones = umap_dict.get('exclude_phones_plot', [])
+    logging.info(f'Excluding phones {exclude_phones} from projection')
+
+    normalize_vectors = umap_dict.get('normalize_vectors', False)
     logging.info(f'UMAP projection normalize vectors {normalize_vectors}')
 
-    use_gpu_umap = param_dict.get('use_gpu_umap', False)
+    use_gpu_umap = umap_dict.get('use_gpu', False)
     logging.info(f'Using gpu umap {use_gpu_umap}')
 
-    fix_random_state_umap = param_dict.get('fix_random_state_umap', True)
+    fix_random_state_umap = umap_dict.get('fix_random_state', True)
     logging.info(f'Fixing umap random state {fix_random_state_umap}. Only matters if use_gpu_umap is set to False')
-    
-    sample_frac_umap = param_dict.get('sample_frac_umap', None)
-    logging.info(f'Using sample_frac_umap {sample_frac_umap}')
 
-    logging.info(f'-------- umap')
-    umap2 = u.train_umap(
+    umap = u.train_umap(
         df_anotated,
         exclude_phones = exclude_phones,
-        n_components=2, 
-        n_neighbors=100, 
-        min_dist=0.1,
+        n_components=dim, 
+        n_neighbors=n_neighbors, 
+        min_dist=min_dist,
+        n_jobs = n_jobs,
         metric = metric,
         normalize_vectors = normalize_vectors,
         use_gpu = use_gpu_umap,
         fix_random_sate = fix_random_state_umap,
-        sample_frac = sample_frac_umap,
         save_model = False,
         folder = None)
         
     df_proj_anotated = u.make_proj_anotated_feat_df(df_anotated, 
-                                                    umap2,
+                                                    umap,
                                                     save_df = False,
                                                     folder = None)
     
-    df_proj_anotated.to_csv(f'{folder_dict["feat_2d_folder"]}/feat_2d_layer_{layer}.csv')
+    df_proj_anotated.to_csv(f'{folder_dict[f"feat_umap_folder"]}/feat_{dim}d_layer_{layer}.csv')
 
     return df_proj_anotated
 
@@ -191,7 +200,8 @@ def make_plot(df_proj_anotated):
             alpha = 0.25, 
             s = 0.1,
             show_global=True)
-    plt.savefig(f'{folder_dict["plots_folder"]}/LS_layer_{layer}')
+
+    plt.savefig(f'{folder_dict[f"plots_umap_folder"]}/LS_layer_{layer}')
 
 
 #############################################################
@@ -203,30 +213,43 @@ T0 = time.time()
 algn_paths, folder_dict = boiler_plate(param_dict)
 metric_dict = {}
 
-for layer in range(1,13):
+single_layer = param_dict.get('single_layer', None)
+
+if single_layer is None:
+    logging.info(f'-------- Computing for all layers')
+    min_layer = 1
+    max_layer = 12
+else:
+    logging.info(f'-------- Computing for single layer {single_layer}')
+    min_layer = single_layer
+    max_layer = single_layer
+
+for layer in range(min_layer, max_layer + 1):
 
     t0 = time.time()
     logging.info(f'-------- Working on layer {layer}')
 
     df_anotated = make_df_annotated(layer, param_dict) 
     
-    if param_dict.get('compute_metrics', True):
+    if param_dict.get('compute_metrics', False):
         logging.info('Computating metrics')
         metric_dict[layer] = ph_metrics.compute_metric_for_layer(df_anotated, param_dict)
     else:
         logging.info('Skipping metric computation')
 
-    if param_dict.get("projection_2d", True):
-        df_proj_anotated = make_df_projected_annotated_2d(df_anotated, param_dict) 
+    if param_dict.get("umap_projection", True):
+        df_proj_anotated = make_df_projected_annotated(df_anotated, 
+                                                          param_dict, 
+                                                          layer)
         make_plot(df_proj_anotated)
     else:
-        logging.info('Skipping 2d projection and plots')
-    
+        logging.info('Skipping umap projection')
+
     t1 = time.time()
     dt = t1 - t0
     logging.info(f'------------- Time for layer {layer}: {dt}')
 
-if param_dict.get('compute_metrics', True):
+if param_dict.get('compute_metrics', False):
     exp_folder = folder_dict["experiment_folder"]
     df_metric = ph_metrics.make_df_metric(metric_dict)
     df_metric.to_csv(f'{exp_folder}/metric_layers.csv')
