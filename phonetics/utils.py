@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.preprocessing import normalize
 
-NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song']
+NON_EMBEDDING_COLS = ['phone_base', 'duration', 'song', 'start']
 DIM = 768
 DT = 0.020 #seconds
 
@@ -282,6 +282,8 @@ def make_anotated_feat_df(feat_paths,
         df = pd.concat([make_single_feat_df(f) for f in feat_paths], axis=0)
 
 
+    print(f'Columns of full df annotated {df.columns}')
+
     
     t1 = time.time()
     print(f'-------- Finished making make_anotated_feat_df, time {t1-t0}')
@@ -337,6 +339,8 @@ def make_single_anotated_feat_df(feat_file,
         mask = df_feat_anotated['duration'] > DT
         df_feat_anotated = df_feat_anotated[mask]
 
+    print(f'Columns of df_feat_anotated {df_feat_anotated.columns}')
+
     return df_feat_anotated
 
 def make_single_feat_df(feat_file):
@@ -366,11 +370,13 @@ def add_phone_to_feat_df(df_feat, df_algn):
     df_feat = df_feat.copy()
     df_feat['phone_base'] = None
     df_feat['duration'] = None
+    df_feat['start'] = None
 
     # Assign phone_base based on start_idx and end_idx
     for _, row in df_algn.iterrows():
         df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'phone_base'] = row['phone_base']
         df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'duration'] = row['duration']
+        df_feat.loc[row['start_idx']:row['end_idx'] - 1, 'start'] = row['start']
 
     return df_feat
 
