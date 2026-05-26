@@ -349,6 +349,7 @@ def make_single_feat_df(feat_file):
 
     df_feat['phone_base'] = 'none'
     df_feat['duration'] = 'none'
+    df_feat['start'] = 'none'
     df_feat['song'] = song_name
 
     return df_feat
