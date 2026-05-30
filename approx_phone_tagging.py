@@ -2,14 +2,20 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
-feat_path = f'{root_exp}/feat_768d/feat_768d_layer_12.csv'
-feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
+# root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
+# feat_path = f'{root_exp}/feat_768d/feat_768d_layer_12.csv'
+# feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
 
-root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
-#song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_LEADVOCAL'
-song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS'
-feat_path_song = f'{root_song}/{song_name}.csv'
+# root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
+# song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS'
+# feat_path_song = f'{root_song}/{song_name}.csv'
+
+ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
+feat_path = f"{ROOT}/libri_768d_v1/feat_768d/feat_768d_layer_8.csv"
+feat_projected_path = f"{ROOT}/libri_768d_v1/feat_2d/feat_2d_layer_8.csv"
+feat_path_song = f"{ROOT}/ASVpreproc_768d_small_v1/feat_768d/feat_768d_layer_8.csv"
+
+outfile = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection.csv"
 
 ##########################################################################
 print('----- Reading full LS data')
@@ -42,6 +48,6 @@ print('----- Applying annotated projection by proximity')
 
 df_song_projected_proximity = df_anotated_projected.iloc[df2_tagged['nn_df1_index']]
 
-outfile = f'{root_song}/{song_name}_approx_projection.csv'
+#outfile = f'{root_song}/{song_name}_approx_projection.csv'
 print(f'----- Saving output to {outfile}')
 df_song_projected_proximity.to_csv(outfile)
