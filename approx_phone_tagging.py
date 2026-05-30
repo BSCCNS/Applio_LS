@@ -17,6 +17,8 @@ feat_path_song = f"{ROOT}/ASVpreproc_768d_small_v1/feat_768d/feat_768d_layer_8.c
 
 outfile = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection.csv"
 
+NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
+
 ##########################################################################
 print('----- Reading full LS data')
 
@@ -30,11 +32,12 @@ df_song_feat = pd.read_csv(feat_path_song, index_col=0)
 ##########################################################################
 print('----- Constructing distance tree')
 
-X_full_values = df_anotated.drop(columns=['phone_base', 'duration', 'song']).to_numpy()
+X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
 tree = cKDTree(X_full_values)
 
+X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
 # Query nearest df1 point for each df2 point
-dist, idx = tree.query(df_song_feat.to_numpy(), k=1)  # k=1 = nearest
+dist, idx = tree.query(X_target, k=1)  # k=1 = nearest
 
 # Assign tag (and optionally distance / matched df1 index)
 df2_tagged = df_song_feat.copy()
