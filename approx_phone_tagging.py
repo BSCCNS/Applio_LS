@@ -16,6 +16,7 @@ feat_projected_path = f"{ROOT}/libri_768d_v1/feat_2d/feat_2d_layer_8.csv"
 feat_path_song = f"{ROOT}/ASVpreproc_768d_small_v1/feat_768d/feat_768d_layer_8.csv"
 
 outfile = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection.csv"
+outfile2 = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection_tagged.csv"
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
@@ -45,6 +46,8 @@ df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
 
 df2_tagged['nn_distance'] = dist
 df2_tagged['nn_df1_index'] = df_anotated.index.to_numpy()[idx]  # keeps original df1 index
+
+df2_tagged.to_csv(outfile2)
 
 ##########################################################################
 print('----- Applying annotated projection by proximity')
