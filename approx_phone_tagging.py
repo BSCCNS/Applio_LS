@@ -49,7 +49,7 @@ df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
 df2_tagged['nn_distance'] = dist
 df2_tagged['nn_df1_index'] = df_anotated.index.to_numpy()[idx]  # keeps original df1 index
 
-df2_tagged.to_csv(outfile2)
+df2_tagged[['phone_base', 'nn_distance', 'nn_df1_index']].to_csv(outfile2)
 
 ##########################################################################
 print('----- Applying annotated projection by proximity')
