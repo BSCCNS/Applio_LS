@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import time
 from scipy.spatial import cKDTree
 
 # root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
@@ -20,6 +21,7 @@ outfile2 = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_proj
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
+t0 = time.time()
 ##########################################################################
 print('----- Reading full LS data')
 
@@ -57,3 +59,8 @@ df_song_projected_proximity = df_anotated_projected.iloc[df2_tagged['nn_df1_inde
 #outfile = f'{root_song}/{song_name}_approx_projection.csv'
 print(f'----- Saving output to {outfile}')
 df_song_projected_proximity.to_csv(outfile)
+##########################################################################
+
+t1 = time.time()
+dt = t1 - t0
+print(f'Total time: {dt}')
