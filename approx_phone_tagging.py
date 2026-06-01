@@ -12,14 +12,17 @@ from scipy.spatial import cKDTree
 # feat_path_song = f'{root_song}/{song_name}.csv'
 
 ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
+LAYER = 8
 
-feat_path = f"{ROOT}/libri_768d_v2/feat_768d/feat_768d_layer_8.csv"
-feat_projected_path = f"{ROOT}/libri_768d_v2/feat_2d/feat_2d_layer_8.csv"
+exp_libri = 'libri_768d_v2'
+feat_path = f"{ROOT}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
+feat_projected_path = f"{ROOT}/{exp_libri}/feat_2d/feat_2d_layer_{LAYER}.csv"
 
-feat_path_song = f"{ROOT}/ASVpreproc_768d_small_v1/feat_768d/feat_768d_layer_8.csv"
+exp_asv = 'ASVpreproc_768d_small_v1'
+feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
-outfile = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection.csv"
-outfile2 = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection_tagged.csv"
+outfile = f"{ROOT}/{exp_asv}/feat_2d/feat_2d_layer_{LAYER}_approx_projection_{exp_libri}.csv"
+outfile2 = f"{ROOT}/{exp_asv}/feat_2d/feat_2d_layer_{LAYER}_approx_projection_tagged_{exp_libri}.csv"
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
