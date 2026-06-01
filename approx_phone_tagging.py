@@ -52,6 +52,21 @@ X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
 tree = cKDTree(X_full_values)
 
 X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+
+##########################################################################
+print('----- Timing test')
+# Test with 1 worker
+t0 = time.time()
+dist, idx = tree.query(X_target[:1000], k=1, workers=1)
+print(f"1 worker:   {time.time()-t0:.3f}s")
+
+# Test with 112 workers
+t0 = time.time()
+dist, idx = tree.query(X_target[:1000], k=1, workers=112)
+print(f"112 workers: {time.time()-t0:.3f}s")
+
+##########################################################################
+
 # Query nearest df1 point for each df2 point
 dist, idx = tree.query(X_target, k=1, workers=-1)  # k=1 = nearest
 
