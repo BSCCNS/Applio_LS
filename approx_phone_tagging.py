@@ -3,6 +3,9 @@ import pandas as pd
 import time
 from scipy.spatial import cKDTree
 
+import scipy
+import os
+
 # root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
 # feat_path = f'{root_exp}/feat_768d/feat_768d_layer_12.csv'
 # feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
@@ -10,6 +13,11 @@ from scipy.spatial import cKDTree
 # root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
 # song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS'
 # feat_path_song = f'{root_song}/{song_name}.csv'
+
+print('------ Preamble')
+print(scipy.__version__)
+print(f"CPUs available to process: {os.cpu_count()}")
+
 
 ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
 LAYER = 8
