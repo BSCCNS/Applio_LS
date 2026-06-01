@@ -65,6 +65,11 @@ t0 = time.time()
 dist, idx = tree.query(X_target[:1000], k=1, workers=112)
 print(f"112 workers: {time.time()-t0:.3f}s")
 
+# Test with 224 workers
+t0 = time.time()
+dist, idx = tree.query(X_target[:1000], k=1, workers=224)
+print(f"112 workers: {time.time()-t0:.3f}s")
+
 ##########################################################################
 
 # Query nearest df1 point for each df2 point
