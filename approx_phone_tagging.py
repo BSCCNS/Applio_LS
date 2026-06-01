@@ -45,7 +45,7 @@ tree = cKDTree(X_full_values)
 
 X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
 # Query nearest df1 point for each df2 point
-dist, idx = tree.query(X_target, k=1)  # k=1 = nearest
+dist, idx = tree.query(X_target, k=1, workers=-1)  # k=1 = nearest
 
 # Assign tag (and optionally distance / matched df1 index)
 df2_tagged = df_song_feat.copy()
