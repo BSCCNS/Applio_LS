@@ -12,8 +12,10 @@ from scipy.spatial import cKDTree
 # feat_path_song = f'{root_song}/{song_name}.csv'
 
 ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
-feat_path = f"{ROOT}/libri_768d_v1/feat_768d/feat_768d_layer_8.csv"
-feat_projected_path = f"{ROOT}/libri_768d_v1/feat_2d/feat_2d_layer_8.csv"
+
+feat_path = f"{ROOT}/libri_768d_v2/feat_768d/feat_768d_layer_8.csv"
+feat_projected_path = f"{ROOT}/libri_768d_v2/feat_2d/feat_2d_layer_8.csv"
+
 feat_path_song = f"{ROOT}/ASVpreproc_768d_small_v1/feat_768d/feat_768d_layer_8.csv"
 
 outfile = f"{ROOT}/ASVpreproc_768d_small_v1/feat_2d/feat_2d_layer_8_approx_projection.csv"
