@@ -22,7 +22,7 @@ print(f"CPUs available to process: {os.cpu_count()}")
 ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
 LAYER = 8
 
-exp_libri = 'libri_768d_v2'
+exp_libri = 'libri_768d_v3'
 feat_path = f"{ROOT}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
 feat_projected_path = f"{ROOT}/{exp_libri}/feat_2d/feat_2d_layer_{LAYER}.csv"
 
