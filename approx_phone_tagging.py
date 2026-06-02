@@ -29,8 +29,13 @@ feat_projected_path = f"{ROOT}/{exp_libri}/feat_2d/feat_2d_layer_{LAYER}.csv"
 exp_asv = 'ASVpreproc_768d_small_v1'
 feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
+output_tag_dir = f"{ROOT}/{exp_asv}/tag"
+print(f'----- Making output tag dir {output_tag_dir}')
+os.makedirs(output_tag_dir)
+
+outfile_tag = f"{output_tag_dir}/layer_{LAYER}_tagged_{exp_libri}.csv"
+
 outfile = f"{ROOT}/{exp_asv}/feat_2d/feat_2d_layer_{LAYER}_approx_projection_{exp_libri}.csv"
-outfile2 = f"{ROOT}/{exp_asv}/feat_2d/feat_2d_layer_{LAYER}_approx_projection_tagged_{exp_libri}.csv"
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
@@ -65,8 +70,8 @@ df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
 df2_tagged['nn_distance'] = dist
 df2_tagged['nn_df1_index'] = df_anotated.index.to_numpy()[idx]  # keeps original df1 index
 
-print(f'----- Saving output to {outfile2}')
-df2_tagged[['phone_base', 'nn_distance', 'nn_df1_index']].to_csv(outfile2)
+print(f'----- Saving output to {outfile_tag}')
+df2_tagged[['phone_base', 'nn_distance', 'nn_df1_index']].to_csv(outfile_tag)
 
 ##########################################################################
 print('----- Applying annotated projection by proximity')
