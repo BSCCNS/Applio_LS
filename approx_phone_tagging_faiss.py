@@ -74,7 +74,7 @@ def faiss_tag(df_anotated, df_song_feat):
     print(f"Build faiss: {time.time()-t0:.2f}s")
 
     # Set threads
-    faiss.omp_set_num_threads(224)
+    faiss.omp_set_num_threads(112)
 
     # Query
     t0 = time.time()
@@ -97,7 +97,7 @@ df2_tagged_faiss = faiss_tag(df_anotated, df_song_feat[0:2000])
 
 print(f'----- Saving output to {outfile_tag}')
 df2_tagged_tree[['phone_base', 'nn_distance']].to_csv('tree_tag.csv')
-df2_tagged_faiss[['phone_base', 'nn_distance']].to_csv('tree_tag.csv')
+df2_tagged_faiss[['phone_base', 'nn_distance']].to_csv('faiss_tag.csv')
 
 ##########################################################################
 
