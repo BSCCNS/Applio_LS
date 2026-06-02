@@ -92,8 +92,8 @@ def faiss_tag(df_anotated, df_song_feat):
 
     return df2_tagged
 
-df2_tagged_tree = tree_tag(df_anotated, df_song_feat[0:2000])
-df2_tagged_faiss = faiss_tag(df_anotated, df_song_feat[0:2000])
+df2_tagged_tree = tree_tag(df_anotated, df_song_feat[0:4000])
+df2_tagged_faiss = faiss_tag(df_anotated, df_song_feat[0:4000])
 
 print(f'----- Saving output to {outfile_tag}')
 df2_tagged_tree[['phone_base', 'nn_distance']].to_csv('tree_tag.csv')
