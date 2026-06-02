@@ -23,7 +23,7 @@ feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
 output_tag_dir = f"{ROOT}/{exp_asv}/tag"
 print(f'----- Making output tag dir {output_tag_dir}')
-os.makedirs(output_tag_dir)
+os.makedirs(output_tag_dir, exist_ok=True)
 
 outfile_tag = f"{output_tag_dir}/layer_{LAYER}_tagged_{exp_libri}.csv"
 
@@ -73,7 +73,7 @@ def faiss_tag(df_anotated, df_song_feat):
     print(f"Build faiss: {time.time()-t0:.2f}s")
 
     # Set threads
-    faiss.omp_set_num_threads(112)
+    faiss.omp_set_num_threads(224)
 
     # Query
     t0 = time.time()
