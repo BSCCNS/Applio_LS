@@ -84,20 +84,17 @@ def faiss_tag(df_anotated, df_song_feat):
     print(f'dist shape {dist.shape} | idx shape {idx.shape}')
     print(f"Query faiss: {time.time()-t0:.2f}s")
 
-    
-
     df2_tagged = df_song_feat.copy()
     df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
     df2_tagged['nn_distance'] = dist
 
     return df2_tagged
 
-df2_tagged_tree = tree_tag(df_anotated, df_song_feat[0:4000])
-df2_tagged_faiss = faiss_tag(df_anotated, df_song_feat[0:4000])
+df2_tagged = faiss_tag(df_anotated, df_song_feat)
 
 print(f'----- Saving output to {outfile_tag}')
-df2_tagged_tree[['phone_base', 'nn_distance']].to_csv('tree_tag.csv')
-df2_tagged_faiss[['phone_base', 'nn_distance']].to_csv('faiss_tag.csv')
+df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
+
 
 ##########################################################################
 
