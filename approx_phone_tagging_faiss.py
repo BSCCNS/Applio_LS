@@ -49,6 +49,7 @@ def tree_tag(df_anotated, df_song_feat):
 
     t0 = time.time()
     dist, idx = tree.query(X_target, k=1, workers=112)  # k=1 = nearest
+    print(f'dist shape {dist.shape} | idx shape {idx.shape}')
     print(f"Query cKDTree: {time.time()-t0:.2f}s")
 
     df2_tagged = df_song_feat.copy()
@@ -78,6 +79,7 @@ def faiss_tag(df_anotated, df_song_feat):
     # Query
     t0 = time.time()
     dist, idx = index.search(Xf_target, k=1)
+    print(f'dist shape {dist.shape} | idx shape {idx.shape}')
     print(f"Query faiss: {time.time()-t0:.2f}s")
 
     df2_tagged = df_song_feat.copy()
