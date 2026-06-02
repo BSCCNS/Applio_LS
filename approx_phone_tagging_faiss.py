@@ -79,8 +79,12 @@ def faiss_tag(df_anotated, df_song_feat):
     # Query
     t0 = time.time()
     dist, idx = index.search(Xf_target, k=1)
+    dist = np.squeeze(dist)
+    idx = np.squeeze(idx)
     print(f'dist shape {dist.shape} | idx shape {idx.shape}')
     print(f"Query faiss: {time.time()-t0:.2f}s")
+
+    
 
     df2_tagged = df_song_feat.copy()
     df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
