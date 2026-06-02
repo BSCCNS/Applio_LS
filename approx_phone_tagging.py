@@ -2,22 +2,14 @@ import numpy as np
 import pandas as pd
 import time
 from scipy.spatial import cKDTree
+import faiss
 
 import scipy
 import os
 
-# root_exp = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/experiments/maria_3d'
-# feat_path = f'{root_exp}/feat_768d/feat_768d_layer_12.csv'
-# feat_projected_path = f'{root_exp}/feat_3d/feat_3d_layer_12.csv'
-
-# root_song = '/media/HDD_disk/tomas/ICHOIR/Applio_LS/assets/datasets/pellizco/feat/layer_12'
-# song_name = 'feats_04 PELLIZCO_LIVE__PELLIZCO_BVS'
-# feat_path_song = f'{root_song}/{song_name}.csv'
-
 print('------ Preamble')
 print(scipy.__version__)
 print(f"CPUs available to process: {os.cpu_count()}")
-
 
 ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
 LAYER = 8
@@ -31,56 +23,79 @@ feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
 output_tag_dir = f"{ROOT}/{exp_asv}/tag"
 print(f'----- Making output tag dir {output_tag_dir}')
-os.makedirs(output_tag_dir)
+os.makedirs(output_tag_dir, exist_ok=True)
 
 outfile_tag = f"{output_tag_dir}/layer_{LAYER}_tagged_{exp_libri}.csv"
-
-outfile = f"{ROOT}/{exp_asv}/feat_2d/feat_2d_layer_{LAYER}_approx_projection_{exp_libri}.csv"
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
 t0 = time.time()
 ##########################################################################
-print('----- Reading full LS data')
+print('----- Reading LS data')
 
 df_anotated = pd.read_csv(feat_path, index_col=0, low_memory=False)
-df_anotated_projected = pd.read_csv(feat_projected_path, index_col=0, low_memory=False)
-
-##########################################################################
-print('----- Reading song LS data')
 df_song_feat = pd.read_csv(feat_path_song, index_col=0)
 
-##########################################################################
-print('----- Constructing distance tree')
+def tree_tag(df_anotated, df_song_feat):
+    print('----- Constructing distance tree')
 
-X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
-tree = cKDTree(X_full_values)
+    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
+    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
 
-X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    # Build index
+    t0 = time.time()
+    tree = cKDTree(X_full_values)
+    print(f"Build cKDTree: {time.time()-t0:.2f}s")
 
-##########################################################################
+    t0 = time.time()
+    dist, idx = tree.query(X_target, k=1, workers=112)  # k=1 = nearest
+    print(f'dist shape {dist.shape} | idx shape {idx.shape}')
+    print(f"Query cKDTree: {time.time()-t0:.2f}s")
 
-# Query nearest df1 point for each df2 point
-dist, idx = tree.query(X_target, k=1, workers=112)  # k=1 = nearest
+    df2_tagged = df_song_feat.copy()
+    df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
+    df2_tagged['nn_distance'] = dist
 
-# Assign tag (and optionally distance / matched df1 index)
-df2_tagged = df_song_feat.copy()
-df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
+    return df2_tagged
 
-df2_tagged['nn_distance'] = dist
-df2_tagged['nn_df1_index'] = df_anotated.index.to_numpy()[idx]  # keeps original df1 index
+def faiss_tag(df_anotated, df_song_feat):
+
+    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
+    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+
+    # FAISS requires float32
+    Xf        = X_full_values.astype(np.float32)
+    Xf_target = X_target.astype(np.float32)
+
+    # Build index
+    t0 = time.time()
+    index = faiss.IndexFlatL2(Xf.shape[1])   # exact L2, equivalent to cKDTree
+    index.add(Xf)
+    print(f"Build faiss: {time.time()-t0:.2f}s")
+
+    # Set threads
+    faiss.omp_set_num_threads(112)
+
+    # Query
+    t0 = time.time()
+    dist, idx = index.search(Xf_target, k=1)
+    dist = np.squeeze(dist)
+    idx = np.squeeze(idx)
+    print(f'dist shape {dist.shape} | idx shape {idx.shape}')
+    print(f"Query faiss: {time.time()-t0:.2f}s")
+
+    df2_tagged = df_song_feat.copy()
+    df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
+    df2_tagged['nn_distance'] = dist
+
+    return df2_tagged
+
+df2_tagged = faiss_tag(df_anotated, df_song_feat)
 
 print(f'----- Saving output to {outfile_tag}')
-df2_tagged[['phone_base', 'nn_distance', 'nn_df1_index']].to_csv(outfile_tag)
+df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
 
-##########################################################################
-print('----- Applying annotated projection by proximity')
 
-df_song_projected_proximity = df_anotated_projected.iloc[df2_tagged['nn_df1_index']]
-
-#outfile = f'{root_song}/{song_name}_approx_projection.csv'
-print(f'----- Saving output to {outfile}')
-df_song_projected_proximity.to_csv(outfile)
 ##########################################################################
 
 t1 = time.time()
