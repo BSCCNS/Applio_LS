@@ -53,6 +53,7 @@ if layer is None:
     min_layer = 1
     max_layer = 12
 else:
+    layer = int(layer)
     logging.info(f'-------- Computing for single layer {layer}')
     min_layer = layer
     max_layer = layer
