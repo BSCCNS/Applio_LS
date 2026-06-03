@@ -7,6 +7,13 @@ import faiss
 import scipy
 import os
 
+import torch
+
+if torch.cuda.is_available():
+    print("CUDA is available. GPU in use:", torch.cuda.get_device_name(0))
+else:
+    print("CUDA is not available. Using CPU.")
+
 print('------ Preamble')
 print(scipy.__version__)
 print(f"CPUs available to process: {os.cpu_count()}")
