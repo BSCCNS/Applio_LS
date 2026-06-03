@@ -7,10 +7,12 @@ import librosa
 import soundfile as sf
 from pydub import AudioSegment
 
-root_audios = '/Users/tomasandrade/Documents/BSC/anti-spoof/dataset/ASVspoof2019/LA/ASVspoof2019_LA_train/flac'
+ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
+
+root_audios = f'{ROOT}/LA/ASVspoof2019_LA_train/flac'
 files = sorted(glob.glob(f'{root_audios}/^LA_T_[12]\d*\.flac$'))
 
-output_dir = '/Users/tomasandrade/Documents/BSC/anti-spoof/dataset/ASV_preproc_v3/flac'
+output_dir = f'{ROOT}/ASVspoof2019_LA_train_preproc/flac'
 os.makedirs(output_dir, exist_ok=True)
 
 def clip_audio(audio_path, out_folder = 'pre-process'):
