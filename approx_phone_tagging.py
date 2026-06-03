@@ -18,7 +18,7 @@ exp_libri = 'libri_768d_v3'
 feat_path = f"{ROOT}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
 #feat_projected_path = f"{ROOT}/{exp_libri}/feat_2d/feat_2d_layer_{LAYER}.csv"
 
-exp_asv = 'ASVpreproc_768d_small_v2'
+exp_asv = 'ASVpreproc_768d_full'
 feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
 output_tag_dir = f"{ROOT}/{exp_asv}/tag"
