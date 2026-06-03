@@ -4,16 +4,28 @@ import os
 from rvc.extract_feat.infer import VoiceConverter
 import time
 import logging
+import argparse
 
-#INPUT_WAV_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/flac'
-#OUTPUT_FEAT_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/study_phonemes_contentvec/libri/feat'
+parser = argparse.ArgumentParser(
+                    prog='extract feat',
+                    description='extract contentvec features',
+                    epilog='Ask me for help')
+
+# Define named arguments
+parser.add_argument('--input', type=str, required=True, help="Path to the input audio folder")
+parser.add_argument('--output', type=str, required=True, help="Path to the output feat folder")
+parser.add_argument('--ext', type=str, required=True, help="Extension of the audio file e.g flac")
+parser.add_argument('--layer', default=None)
+
+args = parser.parse_args()
 
 ###############################################
-args = sys.argv[1:]
+# args = sys.argv[1:]
 
-INPUT_WAV_PATH = args[0]
-OUTPUT_FEAT_PATH = args[1]
-ext = args[2]
+INPUT_WAV_PATH = args.input
+OUTPUT_FEAT_PATH = args.output
+ext = args.ext
+layer = args.layer
 ###############################################
 
 def setup_logs(logs_path):
@@ -36,14 +48,23 @@ setup_logs(logs_path)
 
 ###############################################
 
-n_layers = list(range(1,13))
+if layer is None:
+    logging.info(f'-------- Computing for all layers')
+    min_layer = 1
+    max_layer = 12
+else:
+    logging.info(f'-------- Computing for single layer {layer}')
+    min_layer = layer
+    max_layer = layer
+
 files = glob.glob(f'{INPUT_WAV_PATH}/*.{ext}')
 
 os.makedirs(OUTPUT_FEAT_PATH, exist_ok=True)
 
 T0 = time.time()
 
-for n_layer in n_layers:
+#for n_layer in n_layers:
+for n_layer in range(min_layer, max_layer + 1):
 
     t0 = time.time()
     logging.info(f'------- working on layer {n_layer}')
