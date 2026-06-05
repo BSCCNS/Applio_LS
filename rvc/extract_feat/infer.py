@@ -38,8 +38,6 @@ from rvc.configs.config import Config
 load_dotenv()
 
 EMBEDDERS_PATH = os.getenv('EMBEDDERS_PATH')
-#EMBEDDERS_PATH = '/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/rvc/models/embedders/'
-#FEAT_PATH = "/Users/tomasandrade/Documents/BSC/ICHOIR/applio/Applio_LS/assets/features"
 
 class VoiceConverter:
     """
@@ -100,7 +98,6 @@ class VoiceConverter:
                 **kwargs,
             )
 
-            #basefilename = os.path.basename(audio_input_path)[:-4]
             basefilename = Path(audio_input_path).stem
             feat_extraction(
                 self.hubert_model, 
