@@ -9,10 +9,15 @@ from pydub import AudioSegment
 
 ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
 
-root_audios = f'{ROOT}/LA/ASVspoof2019_LA_train/flac'
-files = sorted(glob.glob(f'{root_audios}/LA_T*.flac'))
+# root_audios = f'{ROOT}/LA/ASVspoof2019_LA_train/flac'
+# files = sorted(glob.glob(f'{root_audios}/LA_T*.flac'))
+# output_dir = f'{ROOT}/ASVspoof2019_LA_train_preproc/flac'
 
-output_dir = f'{ROOT}/ASVspoof2019_LA_train_preproc/flac'
+root_audios = f'{ROOT}/LA/ASVspoof2019_LA_dev/flac'
+files = sorted(glob.glob(f'{root_audios}/LA_D*.flac'))
+output_dir = f'{ROOT}/ASVspoof2019_LA_dev_preproc/flac'
+
+
 os.makedirs(output_dir, exist_ok=True)
 
 def clip_audio(audio_path, out_folder = 'pre-process'):
