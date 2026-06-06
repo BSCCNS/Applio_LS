@@ -14,7 +14,7 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-ROOT_EXP = "/home/bsc/bsc270816/Applio_LS/experiments/ASVpreproc_768d_full"
+ROOT_EXP = "/home/bsc/bsc270816/Applio_LS/experiments/ASV_dev_preproc_768d_full"
 
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
 
@@ -22,8 +22,8 @@ dataset_dir = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVsp
 output_data_prep_dir = f"{dataset_dir}/data_prep_dev"
 output_data_prep = f"{output_data_prep_dir}/feat_768d_dev_layer_8_tag.parquet"
 
-asv_folder = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/LA/'
-cm_train_file = 'ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trn.txt'
+asv_folder = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/LA'
+cm_train_file = 'ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'
 cm_path = f'{asv_folder}/{cm_train_file}'
 
 print(f'----- Making output dir {output_data_prep_dir}')
