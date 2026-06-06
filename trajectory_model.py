@@ -19,7 +19,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-file_data_prep = '/Users/tomasandrade/Documents/BSC/anti-spoof/notebooks/feat_768_tag_v2.csv'
+ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_train_preproc'
+file_data_prep = f'{ROOT}/data_prep/feat_768d_layer_8_tag.parquet'
 
 # -----------------------------------------------------------------------
 # 0. Config — edit these
@@ -361,7 +362,9 @@ if __name__ == '__main__':
 
     # --- Load data ---
     # Replace with your actual path
-    df = pd.read_csv(file_data_prep)
+    df = pd.read_parquet(file_data_prep)
+    print('df.columns')
+    print(df.columns)
     # Expected columns: name, 0, 1, ..., 767, nn_distance, phone_base, key, system_id
 
     # Verify HuBERT columns are present
