@@ -25,6 +25,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_train_preproc'
+file_data_prep = f'{ROOT}/data_prep/feat_768d_layer_8_tag.parquet'
 
 # -----------------------------------------------------------------------
 # 0. Config
@@ -449,7 +451,9 @@ if __name__ == '__main__':
     # --- Load data ---
     # Replace with your actual path. Parquet recommended for speed.
     # df = pd.read_parquet('train_features.parquet')
-    df = pd.read_csv('your_data.csv')
+    df = pd.read_parquet(file_data_prep)
+    print('df.columns')
+    print(df.columns)
     # Expected columns: name, 0..767, nn_distance, phone_base, key, system_id
 
     # Verify HuBERT columns
