@@ -36,9 +36,6 @@ Optimised for Hopper (H100) GPUs:
 import warnings
 warnings.filterwarnings('ignore', message='X does not have valid feature names')
 
-import matplotlib
-matplotlib.use('Agg')  # non-interactive backend — required on clusters with no display
-
 import numpy as np
 import pandas as pd
 import torch
@@ -67,7 +64,7 @@ CFG = dict(
     dropout           = 0.1,
     max_len           = 500,
     batch_size        = 256,
-    epochs            = 350,
+    epochs            = 500,
     lr                = 1e-3,
     clip_grad         = 1.0,
     device            = 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -359,7 +356,7 @@ def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
                             eval_log=None, save_path=None):
     bonafide_mean = scores_df[scores_df['key'] == 'bonafide']['score'].mean()
     systems       = sorted([s for s in scores_df['system_id'].unique()
-                            if s is not None and s != '-'])
+                            if s != '-'])
 
     n_rows = 4 if eval_log else 3
     fig    = plt.figure(figsize=(16, n_rows * 5))
@@ -594,13 +591,8 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------
     # Training loop
     # -------------------------------------------------------------------
-    # Build metadata (key, system_id) for all eval utterances
-    # In official mode: meta comes from df_eval (the dev parquet)
-    # In random mode:   meta comes from df_train_raw (has all utterances)
-    if USE_OFFICIAL_SPLIT:
-        meta = df_eval.groupby('name')[['key', 'system_id']].first().reset_index()
-    else:
-        meta = df_train_raw.groupby('name')[['key', 'system_id']].first().reset_index()
+    meta = (df_eval if USE_OFFICIAL_SPLIT else df_train_raw) \
+           .groupby('name')[['key', 'system_id']].first().reset_index()
 
     train_losses = []
     eval_log     = []
@@ -613,7 +605,6 @@ if __name__ == '__main__':
         if (epoch + 1) % CFG['eval_every'] == 0:
             scores_tmp = compute_scores(model, eval_loader, device, use_bf16)
             scores_tmp = scores_tmp.merge(meta, on='name')
-            scores_tmp['system_id'] = scores_tmp['system_id'].fillna('-')
             bf         = scores_tmp[scores_tmp['key'] == 'bonafide']['score']
             sp         = scores_tmp[scores_tmp['key'] == 'spoof']['score']
             lr_now     = optimizer.param_groups[0]['lr']
@@ -635,9 +626,6 @@ if __name__ == '__main__':
     print("\nFinal evaluation...")
     scores_df = compute_scores(model, eval_loader, device, use_bf16)
     scores_df = scores_df.merge(meta, on='name')
-
-    # Normalise system_id — parquet may parse '-' as None for bonafide rows
-    scores_df['system_id'] = scores_df['system_id'].fillna('-')
 
     print(scores_df.groupby('system_id')['score']
           .agg(['mean', 'std', 'count'])
