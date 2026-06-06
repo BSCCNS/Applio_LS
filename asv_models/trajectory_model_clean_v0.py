@@ -230,7 +230,7 @@ class LSTMPredictor(nn.Module):
         lengths_in = (lengths - 1).clamp(min=1)
 
         packed = pack_padded_sequence(
-            x_in, lengths_in.cpu(),  # pack_padded_sequence requires CPU lengths
+            x_in, lengths_in.cpu(),
             batch_first=True, enforce_sorted=False
         )
         out, _ = self.lstm(packed)
@@ -276,8 +276,7 @@ def train_epoch(model, loader, optimizer, device, use_bf16):
            else torch.autocast(device_type='cpu', enabled=False))
 
     for seqs, lengths, _ in loader:
-        seqs    = seqs.to(device, non_blocking=True)
-        lengths = lengths.to(device, non_blocking=True)
+        seqs = seqs.to(device, non_blocking=True)
 
         optimizer.zero_grad()
         with ctx:
@@ -308,8 +307,7 @@ def compute_scores(model, loader, device, use_bf16):
            else torch.autocast(device_type='cpu', enabled=False))
 
     for seqs, lengths, names in loader:
-        seqs    = seqs.to(device, non_blocking=True)
-        lengths = lengths.to(device, non_blocking=True)
+        seqs = seqs.to(device, non_blocking=True)
 
         with ctx:
             pred = model(seqs, lengths)
