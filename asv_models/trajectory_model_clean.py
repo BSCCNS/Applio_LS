@@ -47,6 +47,9 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
+train_file = f'{ROOT}/ASVspoof2019_LA_train_preproc/data_prep/feat_768d_layer_8_tag.parquet'
+dev_file = f'{ROOT}/ASVspoof2019_LA_dev_preproc/data_prep_dev/feat_768d_dev_layer_8_tag.parquet'
 
 # -----------------------------------------------------------------------
 # 0. Config
@@ -475,15 +478,15 @@ if __name__ == '__main__':
     #   Set USE_OFFICIAL_SPLIT = True below
     # -------------------------------------------------------------------
 
-    USE_OFFICIAL_SPLIT = False   # ← set True when dev features are ready
+    USE_OFFICIAL_SPLIT = True   # ← set True when dev features are ready
 
     if USE_OFFICIAL_SPLIT:
         print("Loading official train/dev split...")
-        df_train_raw = pd.read_parquet('train_features.parquet')
-        df_eval_raw  = pd.read_parquet('dev_features.parquet')
+        df_train_raw = pd.read_parquet(train_file)
+        df_eval_raw  = pd.read_parquet(dev_file)
     else:
         print("Loading data (random 80/20 bonafide split)...")
-        df_train_raw = pd.read_parquet('train_features.parquet')
+        df_train_raw = pd.read_parquet(train_file)
         df_eval_raw  = None   # built from split below
 
     # Verify HuBERT columns
