@@ -51,10 +51,10 @@ df_tag = pd.read_csv(tag_path, index_col=0)
 print('df_tag')
 print(df_tag.head())
 
-df_tag = df_tag.set_index('name').join(df_cm.set_index('name')).reset_index()
+# df_tag = df_tag.set_index('name').join(df_cm.set_index('name')).reset_index()
 
-print('df_tag after')
-print(df_tag.head())
+# print('df_tag after')
+# print(df_tag.head())
 
 ##########################################################################
 
@@ -66,9 +66,13 @@ df_anotated = pd.read_csv(feat_path, index_col=0, low_memory=False)
 df_anotated = df_anotated.drop(columns=['phone_base', 'duration', 'start'])
 df_anotated = df_anotated.rename(columns = {'song': 'name'})
 
+print('df_anotated.columns')
+print(df_anotated.columns)
+
 ##########################################################################
 
 print('----- join')
+df_anotated = df_anotated.set_index('name').join(df_cm.set_index('name')).reset_index()
 df_tagged = df_anotated.join(df_tag)
 
 ##########################################################################
