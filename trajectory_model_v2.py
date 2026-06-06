@@ -488,6 +488,18 @@ if __name__ == '__main__':
     print(f"Eval  bonafide : {len(eval_bonafide_names)}")
     print(f"Eval  spoof    : {len(spoof_names)}")
 
+    print('--------- train key value counts')
+    print(df_train['key'].value_counts())
+
+    print('--------- train system_id value counts')
+    print(df_train['system_id'].value_counts())
+
+    print('--------- eval system_id value counts')
+    print(df_eval['system_id'].value_counts())
+
+    print('--------- eval key value counts')
+    print(df_eval['key'].value_counts())
+
     # --- Datasets ---
     # Train: eager (pre-built tensors, fast repeated access over 200 epochs)
     # Eval:  lazy  (on-demand, avoids ~35 GB pre-allocation for 23k utterances)
