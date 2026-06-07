@@ -18,7 +18,7 @@ print('------ Preamble')
 print(scipy.__version__)
 print(f"CPUs available to process: {os.cpu_count()}")
 
-ROOT = "/home/bsc/bsc270816/Applio_LS/experiments"
+ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 LAYER = 8
 
 exp_libri = 'libri_768d_v3'
