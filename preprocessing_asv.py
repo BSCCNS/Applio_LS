@@ -34,13 +34,32 @@ def clip_audio(audio_path, out_folder = 'pre-process'):
     file_out = f'{out_folder}/{name}'
     clip.export(file_out, format="flac")
 
-def get_t0_t1(audio_path, threshold = 0.05):
-    t, rms = get_rms(audio_path, target_sr = 16_000)
+# def get_t0_t1(audio_path, threshold = 0.05):
+#     t, rms = get_rms(audio_path, target_sr = 16_000)
 
-    real_threshold = threshold*rms.max()
+#     real_threshold = threshold*rms.max()
 
-    t0 = t[rms > real_threshold][0] 
-    t1 = t[rms > real_threshold][-1] 
+#     t0 = t[rms > real_threshold][0] 
+#     t1 = t[rms > real_threshold][-1] 
+#     return t0, t1
+
+def get_t0_t1(audio_path, threshold=0.05, min_speech_frames=3):
+    t, rms = get_rms(audio_path, target_sr=16_000)
+    real_threshold = threshold * rms.max()
+    above = rms > real_threshold
+
+    # Remove isolated spikes — require at least min_speech_frames
+    # consecutive frames above threshold to count as real speech
+    from scipy.ndimage import uniform_filter1d
+    smoothed = uniform_filter1d(above.astype(float), size=min_speech_frames)
+    sustained = smoothed >= 1.0
+
+    valid_frames = t[sustained]
+    if len(valid_frames) == 0:
+        return t[0], t[-1]  # fallback: keep everything
+
+    t0 = valid_frames[0]
+    t1 = valid_frames[-1]
     return t0, t1
 
 def get_rms(audio_path, target_sr = 16_000):
