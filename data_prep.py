@@ -14,7 +14,9 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-ROOT_EXP = "/home/bsc/bsc270816/Applio_LS/experiments/ASV_dev_preproc_768d_full"
+#/tag/layer_8_tagged_libri_768d_v3.csv
+
+ROOT_EXP = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments/ASV_dev_preproc_768d_full"
 
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
 
