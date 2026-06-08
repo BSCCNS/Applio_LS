@@ -44,10 +44,10 @@ RMS_THRESHOLD_FACTOR = 0.05        # fraction of file peak RMS → silence
                                    # same as your clip_audio preprocessing
 
 # Flagging thresholds — adjust based on your data
-MAX_INTERNAL_SILENCE_S  = 0.5     # flag if any internal silence > 500ms
-MAX_SILENCE_FRACTION    = 0.40    # flag if >40% of utterance is silence
-MIN_SPEECH_DURATION_S   = 0.5     # flag if <500ms of actual speech
-MAX_SILENCE_SEGMENTS    = 3       # flag if more than 3 separate silence runs
+MAX_INTERNAL_SILENCE_S  = 0.5   # keep this
+MAX_SILENCE_FRACTION    = 0.40  # keep this
+MIN_SPEECH_DURATION_S   = 0.5   # keep this
+MAX_SILENCE_SEGMENTS    = 15    # raise this — or set to 999 to disable
 
 os.makedirs(OUT_DIR, exist_ok=True)
 
