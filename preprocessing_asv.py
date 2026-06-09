@@ -9,21 +9,33 @@ from pydub import AudioSegment
 
 ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
 
-# root_audios = f'{ROOT}/LA/ASVspoof2019_LA_train/flac'
-# files = sorted(glob.glob(f'{root_audios}/LA_T*.flac'))
-# output_dir = f'{ROOT}/ASVspoof2019_LA_train_preproc/flac'
+dev_input_folder  = f"{ROOT}/LA/ASVspoof2019_LA_dev/flac"
+dev_output_folder = f"{ROOT}/ASVspoof2019_LA_dev_preproc/flac"
 
-root_audios = f'{ROOT}/LA/ASVspoof2019_LA_dev/flac'
-files = sorted(glob.glob(f'{root_audios}/LA_D*.flac'))
-output_dir = f'{ROOT}/ASVspoof2019_LA_dev_preproc/flac'
+train_input_folder  = f"{ROOT}/LA/ASVspoof2019_LA_train/flac"
+train_output_folder = f"{ROOT}/ASVspoof2019_LA_train_preproc/flac"
 
+def process_files(input_folder, output_folder):
 
-os.makedirs(output_dir, exist_ok=True)
+    print(f'---- Working on input folder {input_folder}')
+
+    files = sorted(glob.glob(f'{input_folder}/*.flac'))
+    os.makedirs(output_folder, exist_ok=True)
+
+    print(f'---- Created folder {output_folder}')
+
+    len_in_data = sum([get_duration_flac(f) for f in files])/3600.
+    print(f'---- Total input dataset {len_in_data} hours')
+
+    for i, file in enumerate(files):
+        print(f'{i}/{len(files)}')
+        clip_audio(file, out_folder = output_folder)
+
+    out_files = glob.glob(f'{output_folder}/*.flac')
+    len_out_data = sum([get_duration_flac(f) for f in out_files])/3600
+    print(f'---- Total output dataset {len_out_data} hours')
 
 def clip_audio(audio_path, out_folder = 'pre-process'):
-
-    #print(f'working on file {audio_path}')
-
     t0, t1 = get_t0_t1(audio_path, threshold = 0.05)
 
     audio = AudioSegment.from_file(audio_path)
@@ -33,15 +45,6 @@ def clip_audio(audio_path, out_folder = 'pre-process'):
     name = audio_path.split('/')[-1]
     file_out = f'{out_folder}/{name}'
     clip.export(file_out, format="flac")
-
-# def get_t0_t1(audio_path, threshold = 0.05):
-#     t, rms = get_rms(audio_path, target_sr = 16_000)
-
-#     real_threshold = threshold*rms.max()
-
-#     t0 = t[rms > real_threshold][0] 
-#     t1 = t[rms > real_threshold][-1] 
-#     return t0, t1
 
 def get_t0_t1(audio_path, threshold=0.05, min_speech_frames=3):
     t, rms = get_rms(audio_path, target_sr=16_000)
@@ -78,13 +81,5 @@ def get_duration_flac(path):
 
 if __name__ == "__main__":
 
-    len_in_data = sum([get_duration_flac(f) for f in files])/3600.
-    print(f'Total input dataset {len_in_data} hours')
-
-    for i, file in enumerate(files):
-        print(f'{i}/{len(files)}')
-        clip_audio(file, out_folder = output_dir)
-
-    out_files = glob.glob(f'{output_dir}/*.flac')
-    len_out_data = sum([get_duration_flac(f) for f in out_files])/3600
-    print(f'Total output dataset {len_out_data} hours')
+    process_files(train_input_folder, train_output_folder)
+    process_files(dev_input_folder, dev_output_folder)
