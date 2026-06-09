@@ -19,6 +19,7 @@ Usage:
 """
 
 import os
+import sys
 import numpy as np
 import pandas as pd
 import librosa
@@ -32,9 +33,13 @@ from tqdm import tqdm
 # -----------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------
+#AUDIO_DIR   = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_train_preproc/flac/'   # ← change this
 
-AUDIO_DIR   = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_train_preproc/flac/'   # ← change this
-OUT_DIR     = 'silence_diagnostics'
+# Usage 
+# python AUDIO_DIR suffix
+AUDIO_DIR = sys.argv[1]
+suffix = sys.argv[2]
+OUT_DIR     = f'silence_diagnostics_{suffix}'
 TARGET_SR   = 16_000
 FRAME_LEN   = 0.02                 # 20ms RMS frames (matches HuBERT)
 HOP_LEN     = 0.02                 # non-overlapping
