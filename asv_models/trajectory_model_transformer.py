@@ -72,7 +72,7 @@ CFG = dict(
     # Training
     max_len           = 500,
     batch_size        = 128,           # smaller than LSTM — attention is O(T²)
-    epochs            = 350,
+    epochs            = 700,
     lr                = 5e-4,          # slightly lower than LSTM — transformers
                                        # benefit from more conservative lr
     warmup_epochs     = 20,            # linear warmup before cosine decay
