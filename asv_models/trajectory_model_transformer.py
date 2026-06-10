@@ -194,9 +194,9 @@ def create_mask(lengths, mask_prob=0.15, strategy='span',
 
     Returns mask: (B, T) bool tensor on CPU
     """
-    B   = len(lengths)
-    T   = lengths.max().item() if hasattr(lengths, 'max') else max(lengths)
-    mask = torch.zeros(B, T, dtype=torch.bool)
+    B       = len(lengths)
+    max_len = CFG['max_len']   # always match padded tensor shape
+    mask    = torch.zeros(B, max_len, dtype=torch.bool)
 
     for b in range(B):
         L = int(lengths[b])
@@ -204,12 +204,12 @@ def create_mask(lengths, mask_prob=0.15, strategy='span',
             continue
 
         if strategy == 'random':
-            # Independent Bernoulli masking
+            # Independent Bernoulli masking — only within valid frames
             frame_mask = torch.rand(L) < mask_prob
             mask[b, :L] = frame_mask
 
         elif strategy == 'span':
-            # Span masking — mask contiguous runs
+            # Span masking — mask contiguous runs within valid frames
             n_to_mask = max(1, int(L * mask_prob))
             masked    = 0
             attempts  = 0
@@ -220,7 +220,7 @@ def create_mask(lengths, mask_prob=0.15, strategy='span',
                 masked   += span
                 attempts += 1
 
-    return mask
+    return mask   # (B, max_len) — matches padded tensor shape
 
 
 # -----------------------------------------------------------------------
@@ -298,7 +298,16 @@ class MaskedAcousticTransformer(nn.Module):
         h = self.input_proj(x)                            # (B, T, d_model)
 
         # 2. Replace masked positions with learnable mask token
-        h[mask] = self.mask_token.to(device)
+        # mask is (B, T_actual) but h is (B, max_len, d_model)
+        # Pad mask to max_len along dim=1 to match h
+        if mask.shape[1] < T:
+            pad = torch.zeros(B, T - mask.shape[1], dtype=torch.bool,
+                              device=device)
+            mask_padded = torch.cat([mask.to(device), pad], dim=1)
+        else:
+            mask_padded = mask.to(device)[:, :T]
+        # Expand to (B, T, d_model) for assignment
+        h[mask_padded] = self.mask_token.to(device)
 
         # 3. Add positional encoding
         positions = torch.arange(T, device=device).unsqueeze(0)  # (1, T)
