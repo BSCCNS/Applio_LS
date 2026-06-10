@@ -14,17 +14,22 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-#/tag/layer_8_tagged_libri_768d_v3.csv
+cm_file_dict = {
+    "train": "ASVspoof2019.LA.cm.train.trn.txt",
+    "dev":   "ASVspoof2019.LA.cm.dev.trl.txt",
+    "eval":  "ASVspoof2019.LA.cm.eval.trl.txt"
+}
 
-ROOT_EXP = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments/ASV_dev_preproc_768d"
+tp = "dev"
+ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
+ROOT_EXP = f"{ROOT}/experiments/ASV_{tp}_preproc_768d"
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
 
-dataset_dir = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
-output_data_prep_dir = f"{dataset_dir}/data_prep"
-output_data_prep = f"{output_data_prep_dir}/feat_768d_dev_layer_8_tag.parquet"
+output_data_prep_dir = f"{ROOT}/data_prep"
+output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_8_tag.parquet"
 
-asv_folder = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/LA'
-cm_train_file = 'ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'
+asv_folder = f'{ROOT}/LA/ASVspoof2019_LA_cm_protocols'
+cm_train_file = cm_file_dict[tp]
 cm_path = f'{asv_folder}/{cm_train_file}'
 
 print(f'----- Making output dir {output_data_prep_dir}')
