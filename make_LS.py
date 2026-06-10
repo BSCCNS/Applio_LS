@@ -59,6 +59,7 @@ def setup_logs(logs_path):
 def boiler_plate(param_dict):
 
     input_path = param_dict["input_path"]
+    root_output = param_dict.get("root_output_path", '.')
     experiment = param_dict["experiment"]
     
     tp_algn = param_dict['tp_algn']
@@ -70,7 +71,7 @@ def boiler_plate(param_dict):
     elif tp_algn is None:
         algn_paths = None
 
-    experiment_folder = f'experiments/{experiment}'
+    experiment_folder = f'{root_output}/experiments/{experiment}'
     folder_dict = {'experiment_folder': experiment_folder}
 
     if param_dict.get("output_feat_768d", False):
