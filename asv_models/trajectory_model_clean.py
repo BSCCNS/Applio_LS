@@ -50,9 +50,13 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
-train_file = f'{ROOT}/ASVspoof2019_LA_train_preproc/data_prep/feat_768d_layer_8_tag.parquet'
-dev_file = f'{ROOT}/ASVspoof2019_LA_dev_preproc/data_prep_dev/feat_768d_dev_layer_8_tag.parquet'
+ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
+train_file = f"{ROOT}/data_prep/feat_768d_train_layer_8_tag.parquet"
+dev_file = f"{ROOT}/data_prep/feat_768d_dev_layer_8_tag.parquet"
+
+# ROOT = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
+# train_file = f'{ROOT}/ASVspoof2019_LA_train_preproc/data_prep/feat_768d_layer_8_tag.parquet'
+# dev_file = f'{ROOT}/ASVspoof2019_LA_dev_preproc/data_prep_dev/feat_768d_dev_layer_8_tag.parquet'
 
 # -----------------------------------------------------------------------
 # 0. Config
