@@ -33,12 +33,7 @@ from tqdm import tqdm
 # -----------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------
-
-# AUDIO_DIR   = '/path/to/preprocessed/flac'   # ← change this
-# OUT_DIR     = 'silence_diagnostics'
-# TARGET_SR   = 16_000
-# FRAME_LEN   = 0.02                 # 20ms RMS frames (matches HuBERT)
-# HOP_LEN     = 0.02                 # non-overlapping
+#AUDIO_DIR   = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_train_preproc/flac/'   # ← change this
 
 # Usage 
 # python AUDIO_DIR suffix
@@ -50,14 +45,14 @@ FRAME_LEN   = 0.02                 # 20ms RMS frames (matches HuBERT)
 HOP_LEN     = 0.02                 # non-overlapping
 
 # Silence detection
-RMS_THRESHOLD_FACTOR = 0.1       # fraction of file peak RMS → silence
+RMS_THRESHOLD_FACTOR = 0.05        # fraction of file peak RMS → silence
                                    # same as your clip_audio preprocessing
 
 # Flagging thresholds — adjust based on your data
-MAX_INTERNAL_SILENCE_S  = 0.5     # flag if any internal silence > 500ms
-MAX_SILENCE_FRACTION    = 0.40    # flag if >40% of utterance is silence
-MIN_SPEECH_DURATION_S   = 0.5     # flag if <500ms of actual speech
-MAX_SILENCE_SEGMENTS    = 3       # flag if more than 3 separate silence runs
+MAX_INTERNAL_SILENCE_S  = 0.5   # keep this
+MAX_SILENCE_FRACTION    = 0.40  # keep this
+MIN_SPEECH_DURATION_S   = 0.5   # keep this
+MAX_SILENCE_SEGMENTS    = 15    # raise this — or set to 999 to disable
 
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -305,49 +300,3 @@ if __name__ == '__main__':
                     f"sil_frac={row.get('silence_fraction', '?'):>4.1%}  "
                     f"flags=[{', '.join(flags)}]\n")
     print(f"Manual check list saved to {listen_path}")
-
-    # -----------------------------------------------------------------------
-    # Copy top 50 flagged files for easy manual inspection
-    # -----------------------------------------------------------------------
-    import shutil
-
-    top50_dir = os.path.join(OUT_DIR, 'top50_flagged')
-    os.makedirs(top50_dir, exist_ok=True)
-
-    # Rank by max_internal_sil_s — worst offenders first
-    # Fall back to any flagged files if no long_internal flags
-    if df["flag_long_internal"].sum() > 0:
-        top50 = df[df["flag_long_internal"]].nlargest(50, "max_internal_sil_s")
-    else:
-        top50 = df[df["flagged"]].nlargest(50, "max_internal_sil_s")
-
-    copied  = 0
-    missing = []
-    for _, row in top50.iterrows():
-        src = row.get("path", "")
-        if src and os.path.exists(src):
-            dst = os.path.join(top50_dir, os.path.basename(src))
-            shutil.copy2(src, dst)
-            copied += 1
-        else:
-            missing.append(row["name"])
-
-    # Write a README inside the folder with stats for each file
-    readme_path = os.path.join(top50_dir, "README.txt")
-    with open(readme_path, "w") as f:
-        f.write("Top 50 flagged files — sorted by max internal silence\n")
-        f.write("=" * 60 + "\n\n")
-        for i, (_, row) in enumerate(top50.iterrows(), 1):
-            flags = [c.replace("flag_", "") for c in flag_cols
-                     if c in row and row[c]]
-            f.write(f"{i:2d}. {row['name']}\n")
-            f.write(f"    duration      : {row.get('duration_s', '?'):.2f}s\n")
-            f.write(f"    max_int_sil   : {row.get('max_internal_sil_s', '?'):.3f}s\n")
-            f.write(f"    sil_fraction  : {row.get('silence_fraction', '?'):.1%}\n")
-            f.write(f"    int_sil_segs  : {row.get('n_internal_sil_segs', '?')}\n")
-            f.write(f"    flags         : {', '.join(flags)}\n\n")
-
-    print(f"\nTop 50 flagged files copied to {top50_dir}/")
-    print(f"  Copied  : {copied}")
-    if missing:
-        print(f"  Missing : {len(missing)} (path not found — check 'path' column)")
