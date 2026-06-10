@@ -307,7 +307,7 @@ class MaskedAcousticTransformer(nn.Module):
         else:
             mask_padded = mask.to(device)[:, :T]
         # Expand to (B, T, d_model) for assignment
-        h[mask_padded] = self.mask_token.to(device)
+        h[mask_padded] = self.mask_token.to(device=device, dtype=h.dtype)
 
         # 3. Add positional encoding
         positions = torch.arange(T, device=device).unsqueeze(0)  # (1, T)
