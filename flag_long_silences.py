@@ -50,7 +50,7 @@ FRAME_LEN   = 0.02                 # 20ms RMS frames (matches HuBERT)
 HOP_LEN     = 0.02                 # non-overlapping
 
 # Silence detection
-RMS_THRESHOLD_FACTOR = 0.1       # fraction of file peak RMS → silence
+RMS_THRESHOLD_FACTOR = 0.15       # fraction of file peak RMS → silence
                                    # same as your clip_audio preprocessing
 
 # Flagging thresholds — adjust based on your data
