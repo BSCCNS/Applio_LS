@@ -16,12 +16,11 @@ else:
 
 #/tag/layer_8_tagged_libri_768d_v3.csv
 
-ROOT_EXP = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments/ASV_dev_preproc_768d_full"
-
+ROOT_EXP = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments/ASV_dev_preproc_768d"
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
 
-dataset_dir = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/ASVspoof2019_LA_dev_preproc'
-output_data_prep_dir = f"{dataset_dir}/data_prep_dev"
+dataset_dir = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019'
+output_data_prep_dir = f"{dataset_dir}/data_prep"
 output_data_prep = f"{output_data_prep_dir}/feat_768d_dev_layer_8_tag.parquet"
 
 asv_folder = '/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/LA'
@@ -46,11 +45,11 @@ print('df_cm')
 print(df_cm.head())
 
 ##########################################################################
-print('----- Reading tag data')
-df_tag = pd.read_csv(tag_path, index_col=0)
+# print('----- Reading tag data')
+# df_tag = pd.read_csv(tag_path, index_col=0)
 
-print('df_tag')
-print(df_tag.head())
+# print('df_tag')
+# print(df_tag.head())
 ##########################################################################
 
 print('----- Reading LS data')
