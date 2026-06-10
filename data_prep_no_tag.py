@@ -20,7 +20,7 @@ cm_file_dict = {
     "eval":  "ASVspoof2019.LA.cm.eval.trl.txt"
 }
 
-tp = "dev"
+tp = "train"
 ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
 ROOT_EXP = f"{ROOT}/experiments/ASV_{tp}_preproc_768d"
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
