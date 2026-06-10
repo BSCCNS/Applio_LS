@@ -12,6 +12,7 @@ artefact silences (> threshold).
 """
 
 import os
+import json
 import numpy as np
 import librosa
 from pydub import AudioSegment
@@ -25,7 +26,7 @@ from scipy.ndimage import uniform_filter1d
 MAX_INTERNAL_SILENCE_S = 0.5    # silences longer than this are artefacts
 NATURAL_PAUSE_MS       = 200    # replace long silences with this short pause
                                  # (sounds natural, ~1 breath pause)
-RMS_THRESHOLD_FACTOR   = 0.1   # fraction of peak RMS → silence
+RMS_THRESHOLD_FACTOR   = 0.15   # fraction of peak RMS → silence
 MIN_SPEECH_FRAMES      = 3      # min consecutive frames to count as speech
 
 
@@ -274,5 +275,17 @@ Config (edit at top of script):
             for name, n in sorted(log, key=lambda x: -x[1]):
                 f.write(f"{name}  {n} segments\n")
         print(f"\nMulti-segment log saved to {log_path}")
+
+    meta_dict = {
+        "MAX_INTERNAL_SILENCE_S": MAX_INTERNAL_SILENCE_S, 
+        "NATURAL_PAUSE_MS": NATURAL_PAUSE_MS, 
+        "RMS_THRESHOLD_FACTOR": RMS_THRESHOLD_FACTOR, 
+        "MIN_SPEECH_FRAMES": MIN_SPEECH_FRAMES
+    }
+    meta_path = os.path.join(out_folder, 'metadata.json')
+
+    with open(meta_path, "w") as outfile: 
+        json.dump(meta_dict, outfile, indent=2)
+        print(f"\nMetadata saved to {meta_path}")
 
     print(f"\nDone. {len(files)} files processed → {out_folder}")
