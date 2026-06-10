@@ -7,29 +7,30 @@ Higher score = more anomalous = more likely spoof.
 
 Architecture: BERT-style masked prediction (MAM — Masked Acoustic Modelling)
   - Randomly mask 15% of frames per utterance
-  - Transformer encoder reconstructs masked frames from bidirectional context
+  - Transformer encoder reconstructs masked frames from full bidirectional context
   - Train on bonafide only — model learns the physiological manifold
-  - At inference: mask frames N times, average reconstruction error
+  - At inference: mask frames, score by reconstruction error
 
-Masking strategies:
+Key advantage over LSTM next-frame predictor:
+  - Bidirectional attention — can use both past AND future context
+  - Direct long-range attention — breath frame at t=20 attends directly
+    to phonation at t=100, no gradient through 80 sequential steps
+  - Span masking option forces model to reconstruct entire phoneme
+    segments including breath-to-phonation transitions
+
+Masking strategies (set MASK_STRATEGY in CFG):
   'random' : standard BERT — mask random individual frames (15%)
-  'span'   : mask contiguous spans of 1-10 frames — harder task
+  'span'   : mask contiguous spans of 1-10 frames — harder, tests
+             whether the model has learned segment-level dynamics
 
-Changes from v1:
-  - lr 5e-4 → 1e-3    (faster convergence)
-  - warmup 20 → 5     (less warmup needed)
-  - epochs 700 → 1000 (model still converging at 700)
-  - n_masks 5 → 20    (reduces score variance)
-  - checkpoint save/resume (every CHECKPOINT_EVERY epochs)
-  - RESCORE_ONLY mode: load checkpoint, re-score with more masks
+Input features: ContentVec/HuBERT layer 8 embeddings [768-dim]
 
-Input: ContentVec/HuBERT layer 8 embeddings [768-dim]
+Same data format and pipeline as trajectory_model_clean.py.
 """
 
 import warnings
 warnings.filterwarnings('ignore', message='X does not have valid feature names')
 
-import os
 import random
 import matplotlib
 matplotlib.use('Agg')
@@ -44,7 +45,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-ROOT       = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
+ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
 train_file = f"{ROOT}/data_prep/feat_768d_train_layer_8_tag.parquet"
 dev_file   = f"{ROOT}/data_prep/feat_768d_dev_layer_8_tag.parquet"
 
@@ -56,55 +57,38 @@ dev_file   = f"{ROOT}/data_prep/feat_768d_dev_layer_8_tag.parquet"
 HUBERT_COLS = [str(i) for i in range(768)]
 
 CFG = dict(
-    features          = HUBERT_COLS,
+    features          = HUBERT_COLS,   # 768D ContentVec/HuBERT
     # Transformer architecture
-    d_model           = 256,
-    nhead             = 8,
-    num_layers        = 4,
-    dim_feedforward   = 1024,
+    d_model           = 256,           # transformer hidden dim
+    nhead             = 8,             # attention heads (d_model must be divisible)
+    num_layers        = 4,             # transformer encoder layers
+    dim_feedforward   = 1024,          # FFN hidden dim (4 × d_model)
     dropout           = 0.1,
     # Masking
-    mask_strategy     = 'random',  # 'random' easier/faster than 'span'
-    mask_prob         = 0.15,
-    span_min          = 1,
-    span_max          = 10,
-    # Scoring
-    n_masks           = 20,        # masks averaged per utterance at eval
+    mask_strategy     = 'span',        # 'random' or 'span'
+    mask_prob         = 0.15,          # fraction of frames to mask
+    span_min          = 1,             # min span length (frames)
+    span_max          = 10,            # max span length (frames)
     # Training
     max_len           = 500,
-    batch_size        = 128,
-    epochs            = 1000,
-    lr                = 1e-3,      # increased from 5e-4
-    warmup_epochs     = 5,         # reduced from 20
+    batch_size        = 128,           # smaller than LSTM — attention is O(T²)
+    epochs            = 700,
+    lr                = 5e-4,          # slightly lower than LSTM — transformers
+                                       # benefit from more conservative lr
+    warmup_epochs     = 20,            # linear warmup before cosine decay
     clip_grad         = 1.0,
     device            = 'cuda' if torch.cuda.is_available() else 'cpu',
     use_bf16          = True,
     num_workers       = 8,
     eval_every        = 10,
-    checkpoint_every  = 100,       # save checkpoint every N epochs
     seed              = 42,
+    warmrestart_T0    = 50,
+    warmrestart_Tmult = 2,
 )
 
-# -----------------------------------------------------------------------
-# Run modes
-# -----------------------------------------------------------------------
-USE_OFFICIAL_SPLIT = True
-
-CHECKPOINT_DIR     = 'checkpoints'
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-
-# RESCORE_ONLY: skip training, load checkpoint, re-score with n_masks
-# Set to path of saved checkpoint, or None to train from scratch
-RESCORE_ONLY       = 'trajectory_model_transformer_official.pt'
-# Example: RESCORE_ONLY = 'checkpoints/transformer_official_epoch700.pt'
-
-# RESUME_FROM: continue training from a checkpoint
-RESUME_FROM        = None
-# Example: RESUME_FROM = 'checkpoints/transformer_official_epoch700.pt'
-
 
 # -----------------------------------------------------------------------
-# 1. Datasets
+# 1. Datasets (identical to clean LSTM version)
 # -----------------------------------------------------------------------
 
 class TrajectoryDataset(Dataset):
@@ -126,7 +110,9 @@ class TrajectoryDataset(Dataset):
             self.scaler = None
 
         print("  Building train utterance index (eager)...")
-        self.names, self.sequences, self.lengths = [], [], []
+        self.names     = []
+        self.sequences = []
+        self.lengths   = []
 
         for name, grp in df.groupby('name', sort=False):
             feats = grp[feat_cols].values.astype(np.float32)
@@ -167,7 +153,8 @@ class LazyTrajectoryDataset(Dataset):
         )
 
         print("  Building eval utterance index (lazy)...")
-        self.names, self.groups = [], {}
+        self.names  = []
+        self.groups = {}
         for name, grp in df.groupby('name', sort=False):
             self.names.append(name)
             self.groups[name] = grp[self.feat_cols].values.astype(np.float32)
@@ -196,14 +183,19 @@ def collate_fn(batch):
 # 2. Masking
 # -----------------------------------------------------------------------
 
-def create_mask(lengths, mask_prob=0.15, strategy='random',
+def create_mask(lengths, mask_prob=0.15, strategy='span',
                 span_min=1, span_max=10):
     """
-    Returns (B, max_len) bool mask — True = masked.
-    Masking only applied within valid (non-padding) frames.
+    Create boolean mask tensor — True = masked (to be predicted).
+
+    'random': independently mask each frame with probability mask_prob
+    'span':   mask contiguous spans of frames — harder task, forces model
+              to reconstruct entire phoneme segments from context
+
+    Returns mask: (B, T) bool tensor on CPU
     """
     B       = len(lengths)
-    max_len = CFG['max_len']
+    max_len = CFG['max_len']   # always match padded tensor shape
     mask    = torch.zeros(B, max_len, dtype=torch.bool)
 
     for b in range(B):
@@ -212,12 +204,15 @@ def create_mask(lengths, mask_prob=0.15, strategy='random',
             continue
 
         if strategy == 'random':
-            frame_mask   = torch.rand(L) < mask_prob
-            mask[b, :L]  = frame_mask
+            # Independent Bernoulli masking — only within valid frames
+            frame_mask = torch.rand(L) < mask_prob
+            mask[b, :L] = frame_mask
 
         elif strategy == 'span':
+            # Span masking — mask contiguous runs within valid frames
             n_to_mask = max(1, int(L * mask_prob))
-            masked, attempts = 0, 0
+            masked    = 0
+            attempts  = 0
             while masked < n_to_mask and attempts < 100:
                 span  = random.randint(span_min, min(span_max, L - 1))
                 start = random.randint(0, L - span)
@@ -225,83 +220,136 @@ def create_mask(lengths, mask_prob=0.15, strategy='random',
                 masked   += span
                 attempts += 1
 
-    return mask
+    return mask   # (B, max_len) — matches padded tensor shape
 
 
 # -----------------------------------------------------------------------
-# 3. Model
+# 3. Model — Masked Acoustic Transformer
 # -----------------------------------------------------------------------
 
 class MaskedAcousticTransformer(nn.Module):
     """
-    BERT-style masked acoustic model.
+    BERT-style masked acoustic model for trajectory anomaly detection.
 
-    Bidirectional transformer encoder reconstructs masked frames from
-    full context. Trained on bonafide only — learns the physiological
-    manifold. High reconstruction error at inference = anomalous = spoof.
+    Given a sequence of ContentVec/HuBERT frames with some positions masked,
+    reconstruct the original frames at masked positions using bidirectional
+    attention over the full sequence.
+
+    Trained on bonafide only:
+      - Model learns what physiologically plausible trajectories look like
+      - At inference: high reconstruction error = off-manifold = likely spoof
+
+    Architecture:
+      input_proj  : 768D → d_model  (linear projection)
+      pos_enc     : learnable positional embeddings (max_len × d_model)
+      transformer : N × TransformerEncoderLayer (pre-norm, bidirectional)
+      output_proj : d_model → 768D  (reconstruct in original space)
+
+    The mask_token is a learnable vector replacing masked frame content.
+    It is the same for all masked positions — the model must use positional
+    and contextual information to reconstruct each masked frame.
     """
 
     def __init__(self, input_dim, d_model, nhead, num_layers,
                  dim_feedforward, dropout, max_len):
         super().__init__()
+
+        # Project 768D ContentVec to transformer dimension
         self.input_proj = nn.Linear(input_dim, d_model)
+
+        # Learnable mask token — replaces masked frame embeddings
         self.mask_token = nn.Parameter(torch.zeros(d_model))
         nn.init.normal_(self.mask_token, mean=0.0, std=0.02)
-        self.pos_enc    = nn.Embedding(max_len, d_model)
 
+        # Learnable positional encoding — one vector per position
+        self.pos_enc = nn.Embedding(max_len, d_model)
+
+        # Transformer encoder — pre-norm for training stability
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, nhead=nhead,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout, batch_first=True,
-            norm_first=True, activation='gelu',
+            d_model        = d_model,
+            nhead          = nhead,
+            dim_feedforward= dim_feedforward,
+            dropout        = dropout,
+            batch_first    = True,
+            norm_first     = True,   # pre-norm: more stable than post-norm
+            activation     = 'gelu',
         )
         self.transformer = nn.TransformerEncoder(
             encoder_layer, num_layers=num_layers,
-            enable_nested_tensor=False,
+            enable_nested_tensor=False,  # avoid warning with padding mask
         )
+
+        # Project back to input space for loss computation
         self.output_proj = nn.Linear(d_model, input_dim)
 
     def forward(self, x, mask, lengths):
+        """
+        x:       (B, T, 768)   original frames (unmasked)
+        mask:    (B, T) bool   True = masked position
+        lengths: (B,)          actual sequence lengths
+
+        Returns recon: (B, T, 768) reconstructed frames at all positions
+        Loss is computed only at masked positions.
+        """
         B, T, _ = x.shape
         device  = x.device
 
-        h = self.input_proj(x)
+        # 1. Project input to d_model
+        h = self.input_proj(x)                            # (B, T, d_model)
 
-        # Pad mask to max_len and apply
+        # 2. Replace masked positions with learnable mask token
+        # mask is (B, T_actual) but h is (B, max_len, d_model)
+        # Pad mask to max_len along dim=1 to match h
         if mask.shape[1] < T:
-            pad        = torch.zeros(B, T - mask.shape[1],
-                                     dtype=torch.bool, device=device)
+            pad = torch.zeros(B, T - mask.shape[1], dtype=torch.bool,
+                              device=device)
             mask_padded = torch.cat([mask.to(device), pad], dim=1)
         else:
             mask_padded = mask.to(device)[:, :T]
-
+        # Expand to (B, T, d_model) for assignment
         h[mask_padded] = self.mask_token.to(device=device, dtype=h.dtype)
 
-        positions = torch.arange(T, device=device).unsqueeze(0)
-        h = h + self.pos_enc(positions)
+        # 3. Add positional encoding
+        positions = torch.arange(T, device=device).unsqueeze(0)  # (1, T)
+        h = h + self.pos_enc(positions)                   # (B, T, d_model)
 
+        # 4. Padding mask — transformer ignores padded positions
+        #    True = ignore this position
         pad_mask = torch.arange(T, device=device)[None, :] \
-                   >= lengths.to(device)[:, None]
+                   >= lengths.to(device)[:, None]         # (B, T)
+
+        # 5. Bidirectional transformer — attends over full sequence
         h = self.transformer(h, src_key_padding_mask=pad_mask)
 
-        return self.output_proj(h)
+        # 6. Project back to input space
+        return self.output_proj(h)                        # (B, T, 768)
 
 
 # -----------------------------------------------------------------------
-# 4. Loss
+# 4. Loss — reconstruction error at masked positions only
 # -----------------------------------------------------------------------
 
 def masked_reconstruction_mse(recon, target, mask, lengths):
-    """MSE at masked positions only, ignoring padding."""
-    device      = recon.device
+    """
+    MSE between reconstructed and original frames, computed only at
+    masked positions within valid (non-padding) sequence length.
+
+    recon:   (B, T, 768)
+    target:  (B, T, 768)   — original unmasked frames
+    mask:    (B, T) bool   — True = masked (compute loss here)
+    lengths: (B,)          — valid frame counts
+    """
+    device = recon.device
+
+    # Valid mask: masked AND within sequence length (not padding)
     length_mask = torch.arange(recon.shape[1], device=device)[None, :] \
-                  < lengths.to(device)[:, None]
-    valid_mask  = mask.to(device) & length_mask
+                  < lengths.to(device)[:, None]           # (B, T)
+    valid_mask  = mask.to(device) & length_mask           # (B, T)
 
     if valid_mask.sum() == 0:
         return torch.tensor(0.0, device=device, requires_grad=True)
 
-    err = ((recon - target) ** 2).mean(dim=-1)
+    err  = ((recon - target) ** 2).mean(dim=-1)           # (B, T)
     return err[valid_mask].mean()
 
 
@@ -321,6 +369,7 @@ def train_epoch(model, loader, optimizer, device, use_bf16):
         seqs    = seqs.to(device, non_blocking=True)
         lengths = lengths.to(device, non_blocking=True)
 
+        # Create fresh mask for each batch — different mask every pass
         mask = create_mask(
             lengths.cpu(),
             mask_prob = CFG['mask_prob'],
@@ -343,21 +392,22 @@ def train_epoch(model, loader, optimizer, device, use_bf16):
 
 
 # -----------------------------------------------------------------------
-# 6. Scoring
+# 6. Scoring — average over multiple random masks for stability
 # -----------------------------------------------------------------------
 
 @torch.no_grad()
-def compute_scores(model, loader, device, use_bf16,
-                   n_masks=None):
+def compute_scores(model, loader, device, use_bf16, n_masks=5):
     """
-    Per-utterance anomaly score averaged over n_masks random masks.
-    More masks = more stable score, slower eval.
-    """
-    if n_masks is None:
-        n_masks = CFG['n_masks']
+    Per-utterance anomaly score = mean reconstruction error at masked positions.
 
+    Using n_masks > 1 averages over multiple random masks per utterance,
+    giving a more stable score than a single mask pass.
+    Higher score = more anomalous = more likely spoof.
+    """
     model.eval()
-    all_names, all_scores = [], []
+    all_names  = []
+    all_scores = []
+
     autocast_dt = torch.bfloat16 if use_bf16 else torch.float32
     ctx = (torch.autocast(device_type='cuda', dtype=autocast_dt)
            if device == 'cuda'
@@ -368,6 +418,7 @@ def compute_scores(model, loader, device, use_bf16,
         lengths = lengths.to(device, non_blocking=True)
         B       = seqs.shape[0]
 
+        # Accumulate scores over multiple mask samples
         batch_scores = torch.zeros(B, device=device)
 
         for _ in range(n_masks):
@@ -385,11 +436,13 @@ def compute_scores(model, loader, device, use_bf16,
             recon  = recon.float()
             target = seqs.float()
 
+            # Per-utterance score — mean error at masked valid positions
             length_mask = torch.arange(seqs.shape[1], device=device)[None, :] \
                           < lengths[:, None]
             valid_mask  = mask & length_mask
-            err         = ((recon - target) ** 2).mean(dim=-1)
-            denom       = valid_mask.sum(dim=-1).float().clamp(min=1.0)
+
+            err   = ((recon - target) ** 2).mean(dim=-1)   # (B, T)
+            denom = valid_mask.sum(dim=-1).float().clamp(min=1.0)
             batch_scores += (err * valid_mask).sum(dim=-1) / denom
 
         batch_scores /= n_masks
@@ -418,49 +471,7 @@ def evaluate(scores_df, verbose=True):
 
 
 # -----------------------------------------------------------------------
-# 8. Checkpoint helpers
-# -----------------------------------------------------------------------
-
-def save_checkpoint(epoch, model, optimizer, scheduler,
-                    train_losses, eval_log, scaler, tag='official'):
-    path = os.path.join(
-        CHECKPOINT_DIR,
-        f'transformer_{tag}_epoch{epoch+1}.pt'
-    )
-    torch.save({
-        'epoch':        epoch,
-        'model_state':  model.state_dict(),
-        'optimizer':    optimizer.state_dict(),
-        'scheduler':    scheduler.state_dict(),
-        'train_losses': train_losses,
-        'eval_log':     eval_log,
-        'scaler_mean':  scaler.mean_,
-        'scaler_std':   scaler.scale_,
-        'cfg':          CFG,
-    }, path)
-    print(f"  Checkpoint saved: {path}")
-    return path
-
-
-def load_checkpoint(path, model, optimizer=None, scheduler=None):
-    print(f"Loading checkpoint: {path}")
-    ckpt = torch.load(path, map_location='cpu')
-    model.load_state_dict(ckpt['model_state'])
-    if optimizer is not None and 'optimizer' in ckpt:
-        optimizer.load_state_dict(ckpt['optimizer'])
-    if scheduler is not None and 'scheduler' in ckpt:
-        scheduler.load_state_dict(ckpt['scheduler'])
-    start_epoch  = ckpt.get('epoch', -1) + 1
-    train_losses = ckpt.get('train_losses', [])
-    eval_log     = ckpt.get('eval_log', [])
-    scaler_mean  = ckpt.get('scaler_mean', None)
-    scaler_std   = ckpt.get('scaler_std', None)
-    print(f"  Resumed from epoch {start_epoch}")
-    return start_epoch, train_losses, eval_log, scaler_mean, scaler_std
-
-
-# -----------------------------------------------------------------------
-# 9. Diagnostic report
+# 8. Diagnostic report (same structure as LSTM version)
 # -----------------------------------------------------------------------
 
 def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
@@ -483,13 +494,10 @@ def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
     ax1.plot(train_losses, color='steelblue')
     ax1.set_xlabel('Epoch')
     ax1.set_ylabel('Loss')
-    ax1.set_title(
-        f'Training Loss — Masked Acoustic Transformer\n'
-        f'({CFG["mask_strategy"]} masking, '
-        f'{CFG["mask_prob"]*100:.0f}% masked, '
-        f'{CFG["num_layers"]} layers, d={CFG["d_model"]}, '
-        f'n_masks={CFG["n_masks"]})'
-    )
+    ax1.set_title(f'Training Loss — Masked Acoustic Transformer\n'
+                  f'({CFG["mask_strategy"]} masking, '
+                  f'{CFG["mask_prob"]*100:.0f}% masked, '
+                  f'{CFG["num_layers"]} layers, d={CFG["d_model"]})')
 
     ax2.plot(fpr, tpr, color='steelblue', lw=2, label=f'AUC = {auc:.3f}')
     ax2.plot([0, 1], [0, 1], 'k--', lw=1)
@@ -550,7 +558,7 @@ def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
         )
         ax6.plot(epochs_logged, sp_means, color='tomato', label='spoof mean')
         ax6.axhline(0.661, color='gray', linestyle=':', lw=1,
-                    label='LSTM baseline')
+                    label='LSTM spoof mean baseline')
         ax6.set_xlabel('Epoch')
         ax6.set_ylabel('Anomaly score')
         ax6.set_title('Score Separation During Training')
@@ -568,7 +576,7 @@ def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
 
 
 # -----------------------------------------------------------------------
-# 10. Main
+# 9. Main (same structure as LSTM version)
 # -----------------------------------------------------------------------
 
 if __name__ == '__main__':
@@ -576,20 +584,15 @@ if __name__ == '__main__':
     torch.manual_seed(CFG['seed'])
     device   = CFG['device']
     use_bf16 = CFG['use_bf16'] and device == 'cuda'
-    split_tag = 'official' if USE_OFFICIAL_SPLIT else 'random'
-
     print(f"Device        : {device}")
     print(f"BF16          : {use_bf16}")
     print(f"Architecture  : Transformer d={CFG['d_model']} "
           f"h={CFG['nhead']} layers={CFG['num_layers']}")
     print(f"Mask strategy : {CFG['mask_strategy']} "
-          f"({CFG['mask_prob']*100:.0f}% masked, n_masks={CFG['n_masks']})")
-    print(f"Mode          : "
-          f"{'RESCORE' if RESCORE_ONLY else 'RESUME' if RESUME_FROM else 'TRAIN'}")
+          f"({CFG['mask_prob']*100:.0f}% masked)")
 
-    # -------------------------------------------------------------------
-    # Load data
-    # -------------------------------------------------------------------
+    USE_OFFICIAL_SPLIT = True
+
     if USE_OFFICIAL_SPLIT:
         print("\nLoading official train/dev split...")
         df_train_raw = pd.read_parquet(train_file)
@@ -601,26 +604,27 @@ if __name__ == '__main__':
 
     missing = [c for c in HUBERT_COLS if c not in df_train_raw.columns]
     if missing:
-        raise ValueError(f"Missing HuBERT columns — first: {missing[0]}")
+        raise ValueError(f"Missing {len(missing)} HuBERT columns — "
+                         f"first missing: {missing[0]}.")
 
     n_utt  = df_train_raw['name'].nunique()
     n_feat = len(CFG['features'])
     mem_gb = (n_utt * CFG['max_len'] * n_feat * 4) / 1e9
-    print(f"Utterances : {n_utt}  |  Frames: {len(df_train_raw)}  "
-          f"|  Tensor mem: ~{mem_gb:.1f} GB")
+    print(f"Utterances : {n_utt}")
+    print(f"Frames     : {len(df_train_raw)}")
+    print(f"Tensor mem : ~{mem_gb:.1f} GB")
     print(f"Key counts : "
           f"{df_train_raw.groupby('name')['key'].first().value_counts().to_dict()}")
 
-    # -------------------------------------------------------------------
-    # Build splits
-    # -------------------------------------------------------------------
     if USE_OFFICIAL_SPLIT:
         df_train = df_train_raw[df_train_raw['key'] == 'bonafide']
         df_eval  = df_eval_raw
-        print(f"\nOfficial split — "
-              f"train bonafide: {df_train['name'].nunique()}  "
-              f"eval bonafide: {df_eval[df_eval['key']=='bonafide']['name'].nunique()}  "
-              f"eval spoof: {df_eval[df_eval['key']=='spoof']['name'].nunique()}")
+        print(f"\nOfficial split:")
+        print(f"  Train bonafide : {df_train['name'].nunique()}")
+        print(f"  Eval  bonafide : "
+              f"{df_eval[df_eval['key']=='bonafide']['name'].nunique()}")
+        print(f"  Eval  spoof    : "
+              f"{df_eval[df_eval['key']=='spoof']['name'].nunique()}")
     else:
         rng            = np.random.default_rng(CFG['seed'])
         bonafide_names = df_train_raw[df_train_raw['key'] == 'bonafide']['name'].unique()
@@ -629,39 +633,28 @@ if __name__ == '__main__':
         train_bonafide_names = bonafide_names[:n_train]
         eval_bonafide_names  = bonafide_names[n_train:]
         spoof_names          = df_train_raw[df_train_raw['key'] == 'spoof']['name'].unique()
+        eval_names           = np.concatenate([eval_bonafide_names, spoof_names])
         df_train = df_train_raw[df_train_raw['name'].isin(train_bonafide_names)]
-        df_eval  = df_train_raw[df_train_raw['name'].isin(
-                       np.concatenate([eval_bonafide_names, spoof_names]))]
-        print(f"\nRandom 80/20 — train: {len(train_bonafide_names)}  "
-              f"eval bonafide: {len(eval_bonafide_names)}  "
-              f"spoof: {len(spoof_names)}")
+        df_eval  = df_train_raw[df_train_raw['name'].isin(eval_names)]
+        print(f"\nRandom 80/20 split:")
+        print(f"  Train bonafide : {len(train_bonafide_names)}")
+        print(f"  Eval  bonafide : {len(eval_bonafide_names)}")
+        print(f"  Eval  spoof    : {len(spoof_names)}")
 
-    assert df_train['key'].nunique() == 1
-    assert df_train['key'].unique()[0] == 'bonafide'
+    assert df_train['key'].nunique() == 1,            "Spoof in train!"
+    assert df_train['key'].unique()[0] == 'bonafide', "Train not bonafide!"
+    if not USE_OFFICIAL_SPLIT:
+        overlap = set(df_train['name'].unique()) & \
+                  set(df_eval[df_eval['key']=='bonafide']['name'].unique())
+        assert len(overlap) == 0, f"Train/eval overlap: {len(overlap)}!"
     print("Sanity checks passed ✓")
 
-    # -------------------------------------------------------------------
-    # Datasets & loaders
-    # -------------------------------------------------------------------
-    print("\nBuilding datasets...")
-
-    # If resuming/rescoring, restore scaler from checkpoint
-    if (RESCORE_ONLY or RESUME_FROM):
-        ckpt_path = RESCORE_ONLY or RESUME_FROM
-        ckpt_peek = torch.load(ckpt_path, map_location='cpu')
-        pre_scaler = StandardScaler()
-        pre_scaler.mean_  = ckpt_peek['scaler_mean']
-        pre_scaler.scale_ = ckpt_peek['scaler_std']
-        pre_scaler.var_   = pre_scaler.scale_ ** 2
-        pre_scaler.n_features_in_ = len(CFG['features'])
-        train_set = TrajectoryDataset(df_train, scaler=pre_scaler,
+    print("\nBuilding train dataset (eager)...")
+    train_set = TrajectoryDataset(df_train, fit_scaler=True,
+                                  max_len=CFG['max_len'])
+    print("Building eval dataset (lazy)...")
+    eval_set  = LazyTrajectoryDataset(df_eval, scaler=train_set.scaler,
                                       max_len=CFG['max_len'])
-    else:
-        train_set = TrajectoryDataset(df_train, fit_scaler=True,
-                                      max_len=CFG['max_len'])
-
-    eval_set = LazyTrajectoryDataset(df_eval, scaler=train_set.scaler,
-                                     max_len=CFG['max_len'])
 
     loader_kwargs = dict(
         collate_fn         = collate_fn,
@@ -674,9 +667,7 @@ if __name__ == '__main__':
     eval_loader  = DataLoader(eval_set,  batch_size=CFG['batch_size'],
                               shuffle=False, **loader_kwargs)
 
-    # -------------------------------------------------------------------
     # Model
-    # -------------------------------------------------------------------
     model = MaskedAcousticTransformer(
         input_dim      = n_feat,
         d_model        = CFG['d_model'],
@@ -687,61 +678,35 @@ if __name__ == '__main__':
         max_len        = CFG['max_len'],
     ).to(device)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=CFG['lr'], weight_decay=1e-4
+    optimizer = torch.optim.AdamW(   # AdamW preferred for transformers
+        model.parameters(),
+        lr           = CFG['lr'],
+        weight_decay = 1e-4,
     )
 
+    # Warmup then cosine annealing — standard for transformers
     def lr_lambda(epoch):
         if epoch < CFG['warmup_epochs']:
             return (epoch + 1) / CFG['warmup_epochs']
         progress = (epoch - CFG['warmup_epochs']) / \
                    max(1, CFG['epochs'] - CFG['warmup_epochs'])
-        return max(1e-6 / CFG['lr'], 0.5 * (1 + np.cos(np.pi * progress)))
+        return max(1e-6 / CFG['lr'],
+                   0.5 * (1 + np.cos(np.pi * progress)))
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
-    print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"\nModel parameters: {n_params:,}")
 
     if USE_OFFICIAL_SPLIT:
-        meta = df_eval.groupby('name')[['key','system_id']].first().reset_index()
+        meta = df_eval.groupby('name')[['key', 'system_id']].first().reset_index()
     else:
-        meta = df_train_raw.groupby('name')[['key','system_id']].first().reset_index()
+        meta = df_train_raw.groupby('name')[['key', 'system_id']].first().reset_index()
 
-    # -------------------------------------------------------------------
-    # RESCORE ONLY mode — load checkpoint, score, report, exit
-    # -------------------------------------------------------------------
-    if RESCORE_ONLY:
-        load_checkpoint(RESCORE_ONLY, model)
-        model.to(device)
-        print(f"\nRescoring with n_masks={CFG['n_masks']}...")
-        scores_df = compute_scores(model, eval_loader, device, use_bf16)
-        scores_df = scores_df.merge(meta, on='name')
-        scores_df['system_id'] = scores_df['system_id'].fillna('-')
-        print(scores_df.groupby('system_id')['score']
-              .agg(['mean','std','count']).sort_values('mean', ascending=False))
-        auc, eer, fpr, tpr = evaluate(scores_df)
-        tag = os.path.splitext(os.path.basename(RESCORE_ONLY))[0]
-        full_diagnostic_report(
-            scores_df, fpr, tpr, auc, [],
-            save_path=f'trajectory_report_rescore_{tag}.png'
-        )
-        scores_df.to_csv(f'scores_rescore_{tag}.csv', index=False)
-        print("Done.")
-        exit(0)
-
-    # -------------------------------------------------------------------
-    # Training — with optional resume
-    # -------------------------------------------------------------------
-    start_epoch  = 0
     train_losses = []
     eval_log     = []
 
-    if RESUME_FROM:
-        start_epoch, train_losses, eval_log, _, _ = load_checkpoint(
-            RESUME_FROM, model, optimizer, scheduler
-        )
-
-    for epoch in range(start_epoch, CFG['epochs']):
+    for epoch in range(CFG['epochs']):
         loss = train_epoch(model, train_loader, optimizer, device, use_bf16)
         train_losses.append(loss)
         scheduler.step()
@@ -762,36 +727,31 @@ if __name__ == '__main__':
         elif (epoch + 1) % 5 == 0:
             lr_now = optimizer.param_groups[0]['lr']
             print(f"Epoch {epoch+1:4d}/{CFG['epochs']}  "
-                  f"loss {loss:.4f}  lr {lr_now:.2e}")
+                  f"loss {loss:.4f}  "
+                  f"lr {lr_now:.2e}")
 
-        # Periodic checkpoint
-        if (epoch + 1) % CFG['checkpoint_every'] == 0:
-            save_checkpoint(epoch, model, optimizer, scheduler,
-                            train_losses, eval_log,
-                            train_set.scaler, tag=split_tag)
-
-    # -------------------------------------------------------------------
-    # Final evaluation
-    # -------------------------------------------------------------------
     print("\nFinal evaluation...")
     scores_df = compute_scores(model, eval_loader, device, use_bf16)
     scores_df = scores_df.merge(meta, on='name')
     scores_df['system_id'] = scores_df['system_id'].fillna('-')
 
     print(scores_df.groupby('system_id')['score']
-          .agg(['mean','std','count']).sort_values('mean', ascending=False))
+          .agg(['mean', 'std', 'count'])
+          .sort_values('mean', ascending=False))
+
     auc, eer, fpr, tpr = evaluate(scores_df)
 
+    split_tag = 'official' if USE_OFFICIAL_SPLIT else 'random'
     full_diagnostic_report(
         scores_df, fpr, tpr, auc, train_losses,
         eval_log  = eval_log,
         save_path = f'trajectory_report_transformer_{split_tag}.png'
     )
 
-    # Final checkpoint
-    save_checkpoint(CFG['epochs'] - 1, model, optimizer, scheduler,
-                    train_losses, eval_log,
-                    train_set.scaler, tag=split_tag)
-
-    scores_df.to_csv(f'scores_transformer_{split_tag}.csv', index=False)
-    print(f"Scores saved to scores_transformer_{split_tag}.csv")
+    torch.save({
+        'model_state': model.state_dict(),
+        'scaler_mean': train_set.scaler.mean_,
+        'scaler_std':  train_set.scaler.scale_,
+        'cfg':         CFG,
+    }, f'trajectory_model_transformer_{split_tag}.pt')
+    print(f"Model saved to trajectory_model_transformer_{split_tag}.pt")
