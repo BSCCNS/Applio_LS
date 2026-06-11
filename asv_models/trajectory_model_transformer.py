@@ -92,11 +92,11 @@ USE_OFFICIAL_SPLIT = True
 
 # RESCORE_ONLY: skip training, load checkpoint, re-score with n_masks
 # Set to path of saved checkpoint, or None to train from scratch
-RESCORE_ONLY       = 'checkpoints/trajectory_model_transformer_official.pt'
+RESCORE_ONLY       = None
 # Example: RESCORE_ONLY = 'checkpoints/transformer_official_epoch700.pt'
 
 # RESUME_FROM: continue training from a checkpoint
-RESUME_FROM        = None
+RESUME_FROM        = 'checkpoints/trajectory_model_transformer_official.pt'
 # Example: RESUME_FROM = 'checkpoints/transformer_official_epoch700.pt'
 
 CHECKPOINT_DIR     = 'checkpoints'
