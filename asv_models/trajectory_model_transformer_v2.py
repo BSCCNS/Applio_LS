@@ -96,7 +96,7 @@ RESCORE_ONLY       = None
 # Example: RESCORE_ONLY = 'checkpoints/transformer_official_epoch700.pt'
 
 # RESUME_FROM: continue training from a checkpoint
-RESUME_FROM        = None
+RESUME_FROM        = 'checkpoints/trajectory_model_transformer_official.pt'
 # Example: RESUME_FROM = 'checkpoints/transformer_official_epoch700.pt'
 
 CHECKPOINT_DIR     = 'checkpoints'
@@ -480,23 +480,16 @@ def full_diagnostic_report(scores_df, fpr, tpr, auc, train_losses,
     ax4 = fig.add_subplot(gs[1, 1])
     ax5 = fig.add_subplot(gs[2, :])
 
-    if train_losses:
-        ax1.plot(train_losses, color='steelblue')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Loss')
-        ax1.set_title(
-            f'Training Loss — Masked Acoustic Transformer\n'
-            f'({CFG["mask_strategy"]} masking, '
-            f'{CFG["mask_prob"]*100:.0f}% masked, '
-            f'{CFG["num_layers"]} layers, d={CFG["d_model"]}, '
-            f'n_masks={CFG["n_masks"]})'
-        )
-    else:
-        ax1.text(0.5, 0.5, 'Rescore only\n(no training loss)',
-                 ha='center', va='center', transform=ax1.transAxes,
-                 fontsize=12, color='gray')
-        ax1.set_title('Training Loss — N/A (rescore mode)')
-        ax1.axis('off')
+    ax1.plot(train_losses, color='steelblue')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')
+    ax1.set_title(
+        f'Training Loss — Masked Acoustic Transformer\n'
+        f'({CFG["mask_strategy"]} masking, '
+        f'{CFG["mask_prob"]*100:.0f}% masked, '
+        f'{CFG["num_layers"]} layers, d={CFG["d_model"]}, '
+        f'n_masks={CFG["n_masks"]})'
+    )
 
     ax2.plot(fpr, tpr, color='steelblue', lw=2, label=f'AUC = {auc:.3f}')
     ax2.plot([0, 1], [0, 1], 'k--', lw=1)
@@ -747,14 +740,6 @@ if __name__ == '__main__':
         start_epoch, train_losses, eval_log, _, _ = load_checkpoint(
             RESUME_FROM, model, optimizer, scheduler
         )
-        # If epoch not found in checkpoint (old format),
-        # infer from filename e.g. 'transformer_official_epoch700.pt'
-        if start_epoch == 0:
-            import re
-            match = re.search(r'epoch(\d+)', RESUME_FROM)
-            if match:
-                start_epoch = int(match.group(1))
-                print(f"  Epoch inferred from filename: {start_epoch}")
 
     for epoch in range(start_epoch, CFG['epochs']):
         loss = train_epoch(model, train_loader, optimizer, device, use_bf16)
