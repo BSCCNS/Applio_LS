@@ -6,6 +6,7 @@ import faiss
 
 import scipy
 import os
+import sys
 
 import torch
 
@@ -14,9 +15,12 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-print('------ Preamble')
-print(scipy.__version__)
-print(f"CPUs available to process: {os.cpu_count()}")
+# Usage 
+# python approx_phone_tagging.py <experiment_name>
+# python approx_phone_tagging.py ASV_dev_preproc_768d_full
+# python approx_phone_tagging.py ASV_train_preproc_768d_full
+
+exp_asv = sys.argv[1]
 
 ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 LAYER = 8
@@ -24,7 +28,7 @@ LAYER = 8
 exp_libri = 'libri_768d_v3'
 feat_path = f"{ROOT}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
-exp_asv = 'ASV_dev_preproc_768d_full'
+#exp_asv = 'ASV_dev_preproc_768d_full'
 feat_path_song = f"{ROOT}/{exp_asv}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
 output_tag_dir = f"{ROOT}/{exp_asv}/tag"
