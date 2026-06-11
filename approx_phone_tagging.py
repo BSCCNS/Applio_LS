@@ -17,8 +17,8 @@ else:
 
 # Usage 
 # python approx_phone_tagging.py <experiment_name>
-# python approx_phone_tagging.py ASV_dev_preproc_768d_full
-# python approx_phone_tagging.py ASV_train_preproc_768d_full
+# python approx_phone_tagging.py ASV_dev_preproc_768d
+# python approx_phone_tagging.py ASV_train_preproc_768d
 
 exp_asv = sys.argv[1]
 
