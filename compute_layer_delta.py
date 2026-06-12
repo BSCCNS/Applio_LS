@@ -35,9 +35,9 @@ import matplotlib.pyplot as plt
 
 ROOT = Path("/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/data_prep")
 
-LAYER8_PATH  = ROOT / "feat_768d_train_layer_8_tag.parquet"
-LAYER12_PATH = ROOT / "feat_768d_train_layer_12_tag.parquet"
-OUT_PATH     = ROOT / "feat_768d_train_layer_delta_tag.parquet"
+LAYER8_PATH  = ROOT / "feat_768d_dev_layer_8_tag.parquet"
+LAYER12_PATH = ROOT / "feat_768d_dev_layer_12_tag.parquet"
+OUT_PATH     = ROOT / "feat_768d_dev_layer_delta_tag.parquet"
 
 EMBEDDING_COLS = [str(i) for i in range(768)]
 META_COLS      = ['speaker_id', 'system_id', 'key']
@@ -131,7 +131,7 @@ def compute_delta(layer8_path, layer12_path, out_path,
     delta_flat = delta.flatten()
     plt.hist(delta_flat, bins=100)
     plt.title('Layer12 - Layer8 delta distribution')
-    plt.savefig('delta_hist.png')
+    plt.savefig('delta_hist_dev.png')
 
     # --- Build output dataframe ---
     out = pd.DataFrame(delta, columns=embedding_cols)
