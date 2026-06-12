@@ -3,7 +3,7 @@ import pandas as pd
 import time
 from scipy.spatial import cKDTree
 import faiss
-
+import argparse
 import scipy
 import os
 
@@ -14,14 +14,29 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
+
+parser = argparse.ArgumentParser(
+                    prog='data_prep',
+                    description='combine features with asv',
+                    epilog='Ask me for help')
+
+# Define named arguments
+parser.add_argument('--tp', type=str, required=True, help="train or dev")
+parser.add_argument('--layer', type=int, required=True, help="layer of contentvec")
+
+args = parser.parse_args()
+
 cm_file_dict = {
     "train": "ASVspoof2019.LA.cm.train.trn.txt",
     "dev":   "ASVspoof2019.LA.cm.dev.trl.txt",
     "eval":  "ASVspoof2019.LA.cm.eval.trl.txt"
 }
 
-tp = "train"
-layer = 12
+tp = args.tp
+layer = int(args.layer)
+
+print(f'----- Using dataset {tp}, layer {layer}')
+
 ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
 ROOT_EXP = f"{ROOT}/experiments/ASV_{tp}_preproc_768d"
 feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_{layer}.csv"
