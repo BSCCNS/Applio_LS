@@ -21,12 +21,13 @@ cm_file_dict = {
 }
 
 tp = "train"
+layer = 12
 ROOT = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019"
 ROOT_EXP = f"{ROOT}/experiments/ASV_{tp}_preproc_768d"
-feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_8.csv"
+feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_{layer}.csv"
 
 output_data_prep_dir = f"{ROOT}/data_prep"
-output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_8_tag.parquet"
+output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_tag.parquet"
 
 asv_folder = f'{ROOT}/LA/ASVspoof2019_LA_cm_protocols'
 cm_train_file = cm_file_dict[tp]
