@@ -26,6 +26,7 @@ Usage:
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 # -----------------------------------------------------------------------
@@ -126,6 +127,12 @@ def compute_delta(layer8_path, layer12_path, out_path,
         - df8[embedding_cols].values.astype(np.float32)
     )
 
+    # --- Plot distribution ---
+    delta_flat = delta.flatten()
+    plt.hist(delta_flat, bins=100)
+    plt.title('Layer12 - Layer8 delta distribution')
+    plt.savefig('delta_hist.png')
+
     # --- Build output dataframe ---
     out = pd.DataFrame(delta, columns=embedding_cols)
     out.insert(0, 'name', df8['name'].values)
@@ -149,3 +156,6 @@ def compute_delta(layer8_path, layer12_path, out_path,
 
 if __name__ == '__main__':
     compute_delta(LAYER8_PATH, LAYER12_PATH, OUT_PATH)
+
+    
+    
