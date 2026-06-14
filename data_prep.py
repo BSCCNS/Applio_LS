@@ -88,7 +88,7 @@ def make_df_feat(feat_path):
 t0 = time.time()
 
 df_cm = make_df_cm(cm_path)
-df_tag = make_df_cm(tag_path)
+df_tag = make_df_tag(tag_path)
 df_feat = make_df_feat(feat_path)
 
 print('----- join')
