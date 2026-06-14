@@ -97,7 +97,7 @@ df_anotated = df_feat.set_index('name').join(df_cm.set_index('name')).reset_inde
 if df_tag is None:
     print('---- No phone tag df')
     df_tagged = df_anotated
-    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_tag.parquet"
+    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}.parquet"
 else:
     df_tagged = df_anotated.join(df_tag)
     output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_libri_tag.parquet"
