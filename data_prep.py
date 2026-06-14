@@ -43,7 +43,6 @@ feat_path = f"{ROOT_EXP}/feat_768d/feat_768d_layer_{layer}.csv"
 tag_path = f"{ROOT_EXP}/tag/layer_{layer}_tagged_libri_768d_v3.csv"
 
 output_data_prep_dir = f"{ROOT}/data_prep"
-output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_libri_tag.parquet"
 
 asv_folder = f'{ROOT}/LA/ASVspoof2019_LA_cm_protocols'
 cm_train_file = cm_file_dict[tp]
@@ -98,8 +97,10 @@ df_anotated = df_feat.set_index('name').join(df_cm.set_index('name')).reset_inde
 if df_tag is None:
     print('---- No phone tag df')
     df_tagged = df_anotated
+    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_tag.parquet"
 else:
     df_tagged = df_anotated.join(df_tag)
+    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_libri_tag.parquet"
 
 print(f'----- Output columns {df_tagged.columns}')
 print(f'----- Saving output to {output_data_prep}')
