@@ -78,8 +78,8 @@ def make_df_feat(feat_path):
     df_feat = pd.read_csv(feat_path, index_col=0, low_memory=False)
 
     # emb cols and song --> name
-    df_feat = df_anotated.drop(columns=['phone_base', 'duration', 'start'])
-    df_feat = df_anotated.rename(columns = {'song': 'name'})
+    df_feat = df_feat.drop(columns=['phone_base', 'duration', 'start'])
+    df_feat = df_feat.rename(columns = {'song': 'name'})
 
     return df_feat
 
