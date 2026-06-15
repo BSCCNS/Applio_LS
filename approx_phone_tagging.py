@@ -159,8 +159,8 @@ t1 = time.time()
 dt2 = t0 - t1
 print(f'dt2 MPI : {dt2}')
 
-print(f'----- Saving output to {outfile_tag}')
-df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
+#print(f'----- Saving output to {outfile_tag}')
+#df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
 
 
 ##########################################################################
