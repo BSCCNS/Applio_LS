@@ -156,7 +156,7 @@ if result is not None:  # only rank 0 has the result
     print(result.head()) 
 t1 = time.time()
 
-dt2 = t0 - t1
+dt2 = t1 - t0
 print(f'dt2 MPI : {dt2}')
 
 #print(f'----- Saving output to {outfile_tag}')
