@@ -67,11 +67,20 @@ def make_df_cm(cm_path):
 
 def make_df_tag(tag_path):
     print('----- Reading tag data')
+    # if tag_path is None:
+    #     print('---- No phone tag file provided')
+    #     return None
+    # else:
+    #     return pd.read_csv(tag_path, index_col=0)
     if tag_path is None:
         print('---- No phone tag file provided')
         return None
     else:
-        return pd.read_csv(tag_path, index_col=0)
+        try:
+            return pd.read_csv(tag_path, index_col=0)
+        except FileNotFoundError:
+            print(f'---- Tag file not found: {tag_path}')
+            return None
     
 def make_df_feat(feat_path):
     print('----- Reading LS data')
