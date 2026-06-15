@@ -4,11 +4,15 @@ import time
 from scipy.spatial import cKDTree
 import faiss
 
+from mpi4py import MPI
+
 import scipy
 import os
 import sys
 
 import torch
+
+print(f"CPUs available to process: {os.cpu_count()}")
 
 if torch.cuda.is_available():
     print("CUDA is available. GPU in use:", torch.cuda.get_device_name(0))
@@ -100,7 +104,60 @@ def faiss_tag(df_anotated, df_song_feat):
 
     return df2_tagged
 
-df2_tagged = faiss_tag(df_anotated, df_song_feat)
+def faiss_mpi_tag(df_anotated, df_song_feat):
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()   # which node am I?
+    size = comm.Get_size()   # total number of processes
+
+    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
+    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+
+    # FAISS requires float32
+    X        = X_full_values.astype(np.float32)
+    X_target = X_target.astype(np.float32)
+
+    # --- MPI split (only X_target is split) ---
+    local_chunk = np.array_split(X_target, size)[rank]
+
+    # --- FAISS (unchanged) ---
+    index = faiss.IndexFlatL2(X.shape[1])
+    index.add(X)
+    faiss.omp_set_num_threads(112)
+
+    local_dist, local_idx = index.search(local_chunk, k=1)
+
+    # --- Gather ---
+    all_dist = comm.gather(local_dist, root=0)
+    all_idx  = comm.gather(local_idx,  root=0)
+
+    if rank == 0:
+        dist = np.concatenate(all_dist)
+        idx  = np.concatenate(all_idx)
+
+    dist = np.squeeze(dist)
+    idx = np.squeeze(idx)
+    print(f'dist shape {dist.shape} | idx shape {idx.shape}')
+    print(f"Query faiss: {time.time()-t0:.2f}s")
+
+    df2_tagged = df_song_feat.copy()
+    df2_tagged['phone_base'] = df_anotated.iloc[idx]['phone_base'].to_numpy()
+    df2_tagged['nn_distance'] = dist
+
+    return df2_tagged
+
+t0 = time.time()
+df2_tagged = faiss_tag(df_anotated, df_song_feat[0:5000])
+t1 = time.time()
+dt1 = t0 - t1
+print(f'dt1 : {dt1}')
+
+t0 = time.time()
+df2_tagged = faiss_mpi_tag(df_anotated, df_song_feat[0:5000])
+t1 = time.time()
+
+dt2 = t0 - t1
+print(f'dt2 MPI : {dt2}')
 
 print(f'----- Saving output to {outfile_tag}')
 df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
