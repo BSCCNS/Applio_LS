@@ -135,8 +135,6 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
         dist = np.concatenate(all_dist)
         idx  = np.concatenate(all_idx)
 
-    dist = np.squeeze(dist)
-    idx = np.squeeze(idx)
     print(f'dist shape {dist.shape} | idx shape {idx.shape}')
     print(f"Query faiss: {time.time()-t0:.2f}s")
 
