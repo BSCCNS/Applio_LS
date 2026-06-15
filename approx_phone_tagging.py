@@ -150,7 +150,7 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
 # print(f'dt1 : {dt1}')
 
 t0 = time.time()
-result = faiss_mpi_tag(df_anotated, df_song_feat[5000])
+result = faiss_mpi_tag(df_anotated, df_song_feat[:5000])
 if result is not None:  # only rank 0 has the result
     print(result.head()) 
 t1 = time.time()
