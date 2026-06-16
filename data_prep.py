@@ -7,6 +7,7 @@ import argparse
 
 import scipy
 import os
+from sklearn.preprocessing import normalize
 
 import torch
 
@@ -23,6 +24,7 @@ parser = argparse.ArgumentParser(
 # Define named arguments
 parser.add_argument('--tp', type=str, required=True, help="train or dev")
 parser.add_argument('--layer', type=int, required=True, help="layer of contentvec")
+parser.add_argument('--normalize_cols', type=bool, default=False, help="l2 normalize embedding cols")
 
 args = parser.parse_args()
 
@@ -34,6 +36,7 @@ cm_file_dict = {
 
 tp = args.tp
 layer = int(args.layer)
+NORMALIZE_COLS = args.normalize_cols
 
 print(f'----- Using dataset {tp}, layer {layer}')
 
@@ -50,6 +53,8 @@ cm_path = f'{asv_folder}/{cm_train_file}'
 
 print(f'----- Making output dir {output_data_prep_dir}')
 os.makedirs(output_data_prep_dir, exist_ok=True)
+
+HUBERT_COLS = [str(i) for i in range(768)]
 
 ##########################################################################
 
@@ -77,13 +82,16 @@ def make_df_tag(tag_path):
             print(f'---- Tag file not found: {tag_path}')
             return None
     
-def make_df_feat(feat_path):
+def make_df_feat(feat_path, normalize_cols = False):
     print('----- Reading LS data')
     df_feat = pd.read_csv(feat_path, index_col=0, low_memory=False)
 
     # emb cols and song --> name
     df_feat = df_feat.drop(columns=['phone_base', 'duration', 'start'])
     df_feat = df_feat.rename(columns = {'song': 'name'})
+
+    if normalize_cols:
+        df_feat[HUBERT_COLS] = normalize(df_feat[HUBERT_COLS].values, norm='l2')
 
     return df_feat
 
@@ -93,7 +101,7 @@ t0 = time.time()
 
 df_cm = make_df_cm(cm_path)
 df_tag = make_df_tag(tag_path)
-df_feat = make_df_feat(feat_path)
+df_feat = make_df_feat(feat_path, normalize_cols= NORMALIZE_COLS)
 
 print('----- join')
 df_anotated = df_feat.set_index('name').join(df_cm.set_index('name')).reset_index()
@@ -101,10 +109,18 @@ df_anotated = df_feat.set_index('name').join(df_cm.set_index('name')).reset_inde
 if df_tag is None:
     print('---- No phone tag df')
     df_tagged = df_anotated
-    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}.parquet"
 else:
     df_tagged = df_anotated.join(df_tag)
-    output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}_libri_tag.parquet"
+
+##########################################################################
+suffix = ''
+if df_tag is not None:
+    suffix += "_libri_tag"
+
+if NORMALIZE_COLS:
+    suffix += "_norm"
+output_data_prep = f"{output_data_prep_dir}/feat_768d_{tp}_layer_{layer}{suffix}.parquet"
+##########################################################################
 
 print(f'----- Output columns {df_tagged.columns}')
 print(f'----- Saving output to {output_data_prep}')
