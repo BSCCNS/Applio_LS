@@ -4,7 +4,7 @@ import time
 from scipy.spatial import cKDTree
 import faiss
 
-#from mpi4py import MPI
+from mpi4py import MPI
 
 import scipy
 import os
@@ -39,11 +39,10 @@ output_tag_dir = f"{ROOT}/{exp_asv}/tag"
 print(f'----- Making output tag dir {output_tag_dir}')
 os.makedirs(output_tag_dir, exist_ok=True)
 
-outfile_tag = f"{output_tag_dir}/layer_{LAYER}_tagged_{exp_libri}.csv"
+outfile_tag = f"{output_tag_dir}/layer_{LAYER}_phone_tags_{exp_libri}.csv"
 
 NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
 
-t0 = time.time()
 ##########################################################################
 print('----- Reading LS data')
 
@@ -106,6 +105,8 @@ def faiss_tag(df_anotated, df_song_feat):
 
 def faiss_mpi_tag(df_anotated, df_song_feat):
 
+    print('Using MPI implementation of FAISS')
+
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -143,19 +144,20 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
 
     return None  # other ranks return nothing
 
-t0 = time.time()
-df2_tagged = faiss_tag(df_anotated, df_song_feat[0:15000])
-print(df2_tagged.head())
-t1 = time.time()
-dt1 = t0 - t1
-print(f'dt1 : {dt1}')
-
 # t0 = time.time()
-# print(f'Full size {len(df_song_feat)}')
-# result = faiss_mpi_tag(df_anotated, df_song_feat[:15000])
-# if result is not None:  # only rank 0 has the result
-#     print(result.head()) 
+# df2_tagged = faiss_tag(df_anotated, df_song_feat[0:15000])
+# print(df2_tagged.head())
 # t1 = time.time()
+# dt1 = t0 - t1
+# print(f'dt1 : {dt1}')
+
+t0 = time.time()
+df2_tagged = faiss_mpi_tag(df_anotated, df_song_feat)
+if df2_tagged is not None:  # only rank 0 has the result
+    print(df2_tagged.head()) 
+    print(f'----- Saving output to {outfile_tag}')
+    df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
+t1 = time.time()
 
 # dt2 = t1 - t0
 # print(f'dt2 MPI : {dt2}')
