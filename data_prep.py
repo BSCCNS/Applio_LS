@@ -91,6 +91,7 @@ def make_df_feat(feat_path, normalize_cols = False):
     df_feat = df_feat.rename(columns = {'song': 'name'})
 
     if normalize_cols:
+        print('----- l2 Normalizing columns')
         df_feat[HUBERT_COLS] = normalize(df_feat[HUBERT_COLS].values, norm='l2')
 
     return df_feat
