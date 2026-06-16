@@ -151,6 +151,11 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
 # dt1 = t0 - t1
 # print(f'dt1 : {dt1}')
 
+# dt2 = t1 - t0
+# print(f'dt2 MPI : {dt2}')
+#print(f'----- Saving output to {outfile_tag}')
+#df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
+
 t0 = time.time()
 df2_tagged = faiss_mpi_tag(df_anotated, df_song_feat)
 if df2_tagged is not None:  # only rank 0 has the result
@@ -158,16 +163,7 @@ if df2_tagged is not None:  # only rank 0 has the result
     print(f'----- Saving output to {outfile_tag}')
     df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
 t1 = time.time()
-
-# dt2 = t1 - t0
-# print(f'dt2 MPI : {dt2}')
-
-#print(f'----- Saving output to {outfile_tag}')
-#df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
-
-
-##########################################################################
-
-t1 = time.time()
 dt = t1 - t0
 print(f'Total time: {dt}')
+
+
