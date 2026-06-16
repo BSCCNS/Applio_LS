@@ -145,6 +145,7 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
 
 t0 = time.time()
 df2_tagged = faiss_tag(df_anotated, df_song_feat[0:15000])
+print(df2_tagged.head())
 t1 = time.time()
 dt1 = t0 - t1
 print(f'dt1 : {dt1}')
