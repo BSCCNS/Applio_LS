@@ -143,18 +143,18 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
 
     return None  # other ranks return nothing
 
-# t0 = time.time()
-# df2_tagged = faiss_tag(df_anotated, df_song_feat[0:5000])
-# t1 = time.time()
-# dt1 = t0 - t1
-# print(f'dt1 : {dt1}')
-
 t0 = time.time()
-print(f'Full size {len(df_song_feat)}')
-result = faiss_mpi_tag(df_anotated, df_song_feat[:15000])
-if result is not None:  # only rank 0 has the result
-    print(result.head()) 
+df2_tagged = faiss_tag(df_anotated, df_song_feat[0:15000])
 t1 = time.time()
+dt1 = t0 - t1
+print(f'dt1 : {dt1}')
+
+# t0 = time.time()
+# print(f'Full size {len(df_song_feat)}')
+# result = faiss_mpi_tag(df_anotated, df_song_feat[:15000])
+# if result is not None:  # only rank 0 has the result
+#     print(result.head()) 
+# t1 = time.time()
 
 dt2 = t1 - t0
 print(f'dt2 MPI : {dt2}')
