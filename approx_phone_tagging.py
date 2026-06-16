@@ -4,7 +4,7 @@ import time
 from scipy.spatial import cKDTree
 import faiss
 
-from mpi4py import MPI
+#from mpi4py import MPI
 
 import scipy
 import os
@@ -156,8 +156,8 @@ print(f'dt1 : {dt1}')
 #     print(result.head()) 
 # t1 = time.time()
 
-dt2 = t1 - t0
-print(f'dt2 MPI : {dt2}')
+# dt2 = t1 - t0
+# print(f'dt2 MPI : {dt2}')
 
 #print(f'----- Saving output to {outfile_tag}')
 #df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
