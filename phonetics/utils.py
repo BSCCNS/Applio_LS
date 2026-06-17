@@ -361,6 +361,11 @@ def get_song_name(feat_file):
 
 def df_features_from_csv_file(csv_file):
     df=pd.read_csv(csv_file)
+
+    # TA: debug!!
+    print(f'Inside df_features_from_csv_file function of {csv_file}')
+    print('df.head()')
+    print(df.head())
     dim_cols = [str(n) for n in range(DIM)]
     df_features = df[[c for c in df.columns if c in dim_cols]]
 
