@@ -360,10 +360,10 @@ def get_song_name(feat_file):
     return stem.split('feats_')[1]
 
 def df_features_from_csv_file(csv_file):
-    df=pd.read_csv(csv_file)
-
     # TA: debug!!
     logging.info(f'----------->>>>> Inside df_features_from_csv_file function of {csv_file}')
+
+    df=pd.read_csv(csv_file)
     logging.info('df.head()')
     logging.info(df.head())
     dim_cols = [str(n) for n in range(DIM)]
