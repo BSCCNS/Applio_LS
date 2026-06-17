@@ -15,6 +15,9 @@ dev_output_folder = f"{ROOT}/ASVspoof2019_LA_dev_preproc/flac"
 train_input_folder  = f"{ROOT}/LA/ASVspoof2019_LA_train/flac"
 train_output_folder = f"{ROOT}/ASVspoof2019_LA_train_preproc/flac"
 
+eval_input_folder  = f"{ROOT}/LA/ASVspoof2019_LA_eval/flac"
+eval_output_folder = f"{ROOT}/ASVspoof2019_LA_eval_preproc/flac"
+
 def process_files(input_folder, output_folder):
 
     print(f'---- Working on input folder {input_folder}')
@@ -81,5 +84,6 @@ def get_duration_flac(path):
 
 if __name__ == "__main__":
 
-    process_files(train_input_folder, train_output_folder)
-    process_files(dev_input_folder, dev_output_folder)
+    #process_files(train_input_folder, train_output_folder)
+    #process_files(dev_input_folder, dev_output_folder)
+    process_files(eval_input_folder, eval_output_folder)
