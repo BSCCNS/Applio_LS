@@ -19,14 +19,14 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-ROOT_LIBRI = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
-ROOT_SONG = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 LAYER = 8
 
+ROOT_LIBRI = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 exp_libri = 'libri_768d_v3'
 feat_path = f"{ROOT_LIBRI}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
-exp_song = ''
+ROOT_SONG = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/IWSLT2024_Quechua_data/experiments"
+exp_song = 'iwslt_v1'
 feat_path_song = f"{ROOT_SONG}/{exp_song}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
 output_tag_dir = f"{ROOT_SONG}/{exp_song}/tag"
