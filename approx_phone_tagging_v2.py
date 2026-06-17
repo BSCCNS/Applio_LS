@@ -19,7 +19,7 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-LAYER = 8
+LAYER = 12
 
 ROOT_LIBRI = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 exp_libri = 'libri_768d_v3'
