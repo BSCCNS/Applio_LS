@@ -124,8 +124,6 @@ class VoiceConverter:
 class HubertModelWithFinalProj(HubertModel):
     def __init__(self, config):
         super().__init__(config)
-        print('Inside HubertModel')
-        print(f'{self.config.hidden_size}   | {self.config.classifier_proj_size}')
         self.final_proj = nn.Linear(config.hidden_size, config.classifier_proj_size)
 
 def feat_extraction(
