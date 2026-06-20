@@ -55,8 +55,8 @@ class VoiceConverter:
         Initializes the VoiceConverter with default configuration, and sets up models and parameters.
         """
         self.config = Config()  # Load RVC configuration
-        print('self.config')
-        print(self.config)
+        print('self.config: ')
+        print(f'{self.config.device}')
         self.use_window = use_window
         self.use_hi_filter = use_hi_filter
         self.output_feat_path = output_feat_path
@@ -124,6 +124,8 @@ class VoiceConverter:
 class HubertModelWithFinalProj(HubertModel):
     def __init__(self, config):
         super().__init__(config)
+        print('Inside HubertModel')
+        print(f'{self.config.hidden_size}   | {self.config.classifier_proj_size}')
         self.final_proj = nn.Linear(config.hidden_size, config.classifier_proj_size)
 
 def feat_extraction(
