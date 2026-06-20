@@ -55,6 +55,8 @@ class VoiceConverter:
         Initializes the VoiceConverter with default configuration, and sets up models and parameters.
         """
         self.config = Config()  # Load RVC configuration
+        print('self.config')
+        print(self.config)
         self.use_window = use_window
         self.use_hi_filter = use_hi_filter
         self.output_feat_path = output_feat_path
