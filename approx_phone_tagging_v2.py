@@ -164,7 +164,8 @@ df2_tagged = faiss_mpi_tag(df_anotated, df_song_feat)
 if df2_tagged is not None:  # only rank 0 has the result
     print(df2_tagged.head()) 
     print(f'----- Saving output to {outfile}')
-    df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile)
+    cols = ['name’, ‘speaker_id', 'system_id', 'key', 'phone_base', 'nn_distance']
+    df2_tagged[cols].to_parquet(outfile)
 t1 = time.time()
 dt = t1 - t0
 print(f'Total time: {dt}')
