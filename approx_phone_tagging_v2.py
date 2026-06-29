@@ -40,7 +40,7 @@ HUBERT_COLS = [str(i) for i in range(768)]
 print('----- Reading LS data')
 
 df_anotated = pd.read_csv(feat_path, index_col=0, low_memory=False)
-df_song_feat = pd.read_parquet(feat_path_song, index_col=0)
+df_song_feat = pd.read_parquet(feat_path_song)
 
 def get_X_values(df_anotated, df_song_feat):
     X_full_values = df_anotated[HUBERT_COLS].to_numpy()
