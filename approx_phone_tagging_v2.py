@@ -19,35 +19,42 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available. Using CPU.")
 
-LAYER = 12
+LAYER = 8
 
 ROOT_LIBRI = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/experiments"
 exp_libri = 'libri_768d_v3'
 feat_path = f"{ROOT_LIBRI}/{exp_libri}/feat_768d/feat_768d_layer_{LAYER}.csv"
 
-ROOT_SONG = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/IWSLT2024_Quechua_data/experiments"
-exp_song = 'iwslt_v1'
-feat_path_song = f"{ROOT_SONG}/{exp_song}/feat_768d/feat_768d_layer_{LAYER}.csv"
+ROOT_SONG = "/gpfs/scratch/bsc21/bsc270816/ls_data/datasets/ASVspoof2019/data_prep_contentvec"
+feat_path_song = f"{ROOT_SONG}/feat_768d_train_layer_{LAYER}.parquet" 
 
-output_tag_dir = f"{ROOT_SONG}/{exp_song}/tag"
-print(f'----- Making output tag dir {output_tag_dir}')
-os.makedirs(output_tag_dir, exist_ok=True)
+outfile = f"{ROOT_SONG}/feat_768d_train_layer_{LAYER}_{exp_libri}_tag.parquet"
+#print(f'----- Making output tag dir {output_tag_dir}')
+#os.makedirs(output_tag_dir, exist_ok=True)
+#outfile_file = f"{output_tag_dir}/layer_{LAYER}_phone_tags_{exp_libri}.csv"
 
-outfile_tag = f"{output_tag_dir}/layer_{LAYER}_phone_tags_{exp_libri}.csv"
-
-NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
+#NON_EMB_COLS = ['phone_base', 'duration', 'start' , 'song']
+HUBERT_COLS = [str(i) for i in range(768)]
 
 ##########################################################################
 print('----- Reading LS data')
 
 df_anotated = pd.read_csv(feat_path, index_col=0, low_memory=False)
-df_song_feat = pd.read_csv(feat_path_song, index_col=0)
+df_song_feat = pd.read_parquet(feat_path_song, index_col=0)
+
+def get_X_values(df_anotated, df_song_feat):
+    X_full_values = df_anotated[HUBERT_COLS].to_numpy()
+    X_target = df_song_feat[HUBERT_COLS].to_numpy()
+
+    return X_full_values, X_target
+
 
 def tree_tag(df_anotated, df_song_feat):
     print('----- Constructing distance tree')
 
-    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
-    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    # X_full_values = df_anotated[HUBERT_COLS].to_numpy()
+    # X_target = df_song_feat[HUBERT_COLS].to_numpy()
+    X_full_values, X_target = get_X_values(df_anotated, df_song_feat)
 
     # Build index
     t0 = time.time()
@@ -67,8 +74,9 @@ def tree_tag(df_anotated, df_song_feat):
 
 def faiss_tag(df_anotated, df_song_feat):
 
-    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
-    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    # X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
+    # X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    X_full_values, X_target = get_X_values(df_anotated, df_song_feat)
 
     # FAISS requires float32
     Xf        = X_full_values.astype(np.float32)
@@ -105,8 +113,9 @@ def faiss_mpi_tag(df_anotated, df_song_feat):
     rank = comm.Get_rank()
     size = comm.Get_size()
 
-    X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
-    X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    # X_full_values = df_anotated.drop(columns=NON_EMB_COLS).to_numpy()
+    # X_target = df_song_feat.drop(columns=NON_EMB_COLS).to_numpy()
+    X_full_values, X_target = get_X_values(df_anotated, df_song_feat)
 
     X        = X_full_values.astype(np.float32)
     X_target = X_target.astype(np.float32)
@@ -154,8 +163,8 @@ t0 = time.time()
 df2_tagged = faiss_mpi_tag(df_anotated, df_song_feat)
 if df2_tagged is not None:  # only rank 0 has the result
     print(df2_tagged.head()) 
-    print(f'----- Saving output to {outfile_tag}')
-    df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile_tag)
+    print(f'----- Saving output to {outfile}')
+    df2_tagged[['phone_base', 'nn_distance']].to_csv(outfile)
 t1 = time.time()
 dt = t1 - t0
 print(f'Total time: {dt}')
